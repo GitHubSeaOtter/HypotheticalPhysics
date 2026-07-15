@@ -348,6 +348,33 @@ const BUILTIN_PRESETS = [
   ],
   overlays:{rotationCurve:false,tempHistogram:false,field:false} },
 
+{ id:"accretion", name:"降着円盤の摩擦発光", emoji:"💫",
+  description:"順行する塵の流れに逆行する塵(2割)が混ざった円盤。すれ違いざまの摩擦で角運動量が打ち消され、塵は光を放ちながら中心星へ落ちていく(降着)。発光はやがて衰え、冷えた地殻が中心星を覆う——この宇宙では高密度の塵は接触で冷えて固まる(三態デモと同じ帰結)。",
+  camera:{scale:260}, world:{boundary:"none",size:0},
+  physics:{G:1, D0:2, kRep:0.3, muF:0.9, gammaN:0.5, kappaS:0.02,
+    etaRad:0.02, pRad:4, timeScale:4},
+  bodies:[
+    {type:"single", m:1200, x:0,y:0, vx:0,vy:0, spin:0.05, pinned:true},
+    {type:"ring", n:250, cx:0,cy:0, rIn:60,rOut:180, mMin:0.1,mMax:0.25,
+     spinMin:0,spinMax:0, vMode:"kepler", aroundMass:1200, omega:0, vNoise:0.05, direction:1, pinned:false},
+    {type:"ring", n:70, cx:0,cy:0, rIn:70,rOut:160, mMin:0.1,mMax:0.25,
+     spinMin:0,spinMax:0, vMode:"kepler", aroundMass:1200, omega:0, vNoise:0.05, direction:-1, pinned:false}
+  ],
+  overlays:{rotationCurve:false,tempHistogram:false,field:false,spectrum:true} },
+
+{ id:"collision", name:"二星団の衝突加熱", emoji:"💥",
+  description:"2つの冷たい星団がまず自らの重力で収縮して固まり、静かに落下しあって激突する。衝突の瞬間、並進運動が摩擦でスピン=熱に変わり(A9)、失われた運動エネルギーは衝突閃光として放射帳簿に記録される(A12。保存量モニタでradEの跳ね上がりが見える)。合体残骸はゆっくり冷える。",
+  camera:{scale:260}, world:{boundary:"none",size:0},
+  physics:{G:2, D0:2, kRep:0.5, muF:1, gammaN:0.3, kappaS:0.02,
+    etaRad:0.0001, pRad:4, timeScale:4},
+  bodies:[
+    {type:"disk", n:85, cx:-120,cy:-40, radius:36, mMin:2,mMax:2.5,
+     spinMin:0,spinMax:0, vMode:"none", aroundMass:0, vScale:0, direction:1},
+    {type:"disk", n:85, cx:120,cy:40, radius:36, mMin:2,mMax:2.5,
+     spinMin:0,spinMax:0, vMode:"none", aroundMass:0, vScale:0, direction:1}
+  ],
+  overlays:{rotationCurve:false,tempHistogram:false,field:false,spectrum:true} },
+
 { id:"radcool", name:"放射で冷えて固まる星", emoji:"🌠",
   description:"圧力(スピン斥力)と乱雑な速度で支えられた高温の雲が、放射(Λ∝T⁴)で冷えて圧力を失い、重力で収縮して固まっていく——気体→液体→固体の逆行。右下のスペクトルのピークが長波長側へ移動し続ける(A12/E11)。",
   camera:{scale:320}, world:{boundary:"circle",size:300},
