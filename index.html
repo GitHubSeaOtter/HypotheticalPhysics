@@ -287,6 +287,104 @@ const BUILTIN_PRESETS = [
      spinMin:0,spinMax:0, vMode:"none", aroundMass:0, vScale:0, direction:1}
   ],
   overlays:{rotationCurve:false,tempHistogram:false,field:false} },
+
+// ---- v1.2 熱・放射系サンプル(HANDOFF_IMPLEMENTATION.md 付録C) ----
+{ id:"spectrum", name:"スピンとスペクトル", emoji:"🌈",
+  description:"同じ質量でスピンだけが違う6つの質点。温度T=Is²が放射のピーク波長λ=b_m/Tを決める(A12ウィーン則)。光度はΛ∝T⁴なので高スピンの星から先に冷え、右下のスペクトルの輝線が長波長側へ動く。粒子をタップするとλが見える。",
+  camera:{scale:260}, world:{boundary:"none",size:0},
+  physics:{G:0, kFrame:0, kRep:0, muF:0, gammaN:0, kappaS:0, etaRad:7e-11, pRad:4, timeScale:1},
+  bodies:[
+    {type:"single", m:8, x:-200,y:0, vx:0,vy:0, spin:0.6, pinned:false},
+    {type:"single", m:8, x:-120,y:0, vx:0,vy:0, spin:1.2, pinned:false},
+    {type:"single", m:8, x:-40, y:0, vx:0,vy:0, spin:1.8, pinned:false},
+    {type:"single", m:8, x:40,  y:0, vx:0,vy:0, spin:2.4, pinned:false},
+    {type:"single", m:8, x:120, y:0, vx:0,vy:0, spin:3.0, pinned:false},
+    {type:"single", m:8, x:200, y:0, vx:0,vy:0, spin:3.6, pinned:false}
+  ],
+  overlays:{rotationCurve:false,tempHistogram:false,field:false,spectrum:true} },
+
+{ id:"convection", name:"加熱の対流", emoji:"♨️",
+  description:"床のヒーター(pinned=スピン一定の熱浴)が、接触摩擦とスピン拡散でガスを加熱する。熱いガスはスピン斥力で膨らんで浮かび、床を離れると放射(η_rad·T⁴)で冷えて沈む——下面加熱の対流。画面外の遠い大質量が箱全体を下向きに引く重力の役をする。",
+  camera:{scale:240}, world:{boundary:"box",size:190},
+  physics:{G:4, D0:40, kFrame:0.2, kRep:1, muF:0.5, gammaN:0.3, kappaS:0.4,
+    etaRad:1.5e-5, pRad:4, radiusScale:3, softening:4, timeScale:2},
+  bodies:[
+    {type:"single", m:5000, x:0,y:900, vx:0,vy:0, spin:0, pinned:true},
+    {type:"single", m:1, x:-170,y:186, vx:0,vy:0, spin:8,  pinned:true},
+    {type:"single", m:1, x:-150,y:186, vx:0,vy:0, spin:8,  pinned:true},
+    {type:"single", m:1, x:-130,y:186, vx:0,vy:0, spin:8,  pinned:true},
+    {type:"single", m:1, x:-110,y:186, vx:0,vy:0, spin:8,  pinned:true},
+    {type:"single", m:1, x:-90, y:186, vx:0,vy:0, spin:8,  pinned:true},
+    {type:"single", m:1, x:-70, y:186, vx:0,vy:0, spin:8,  pinned:true},
+    {type:"single", m:1, x:-50, y:186, vx:0,vy:0, spin:8,  pinned:true},
+    {type:"single", m:1, x:-30, y:186, vx:0,vy:0, spin:8,  pinned:true},
+    {type:"single", m:1, x:-10, y:186, vx:0,vy:0, spin:8,  pinned:true},
+    {type:"single", m:1, x:10,  y:186, vx:0,vy:0, spin:8,  pinned:true},
+    {type:"single", m:1, x:30,  y:186, vx:0,vy:0, spin:8,  pinned:true},
+    {type:"single", m:1, x:50,  y:186, vx:0,vy:0, spin:8,  pinned:true},
+    {type:"single", m:1, x:70,  y:186, vx:0,vy:0, spin:8,  pinned:true},
+    {type:"single", m:1, x:90,  y:186, vx:0,vy:0, spin:8,  pinned:true},
+    {type:"single", m:1, x:110, y:186, vx:0,vy:0, spin:8,  pinned:true},
+    {type:"single", m:1, x:130, y:186, vx:0,vy:0, spin:8,  pinned:true},
+    {type:"single", m:1, x:150, y:186, vx:0,vy:0, spin:8,  pinned:true},
+    {type:"single", m:1, x:170, y:186, vx:0,vy:0, spin:8,  pinned:true},
+    {type:"box", n:230, cx:0,cy:-10, w:360,h:330, mMin:0.3,mMax:0.3,
+     spinMin:0,spinMax:0.3, vScale:0.4}
+  ],
+  overlays:{rotationCurve:false,tempHistogram:false,field:false} },
+
+{ id:"phase", name:"固体・液体・気体", emoji:"🧊",
+  description:"同じ法則の下で温度(スピン)だけが違う3つの雲。左=低温: 重力で収縮し接触ばねで結晶化する固体。中=中温: 束縛されたまま流動する液体。右=高温: スピン斥力と速度が重力を振り切り、蒸発して箱に充満する気体。色=温度(青→赤)。",
+  camera:{scale:260}, world:{boundary:"box",size:240},
+  physics:{G:0.7, D0:30, kFrame:0.3, kRep:0.8, muF:0.6, gammaN:0.85, kappaS:0.02,
+    radiusScale:1.6, timeScale:2},
+  bodies:[
+    {type:"disk", n:70, cx:-160,cy:0, radius:40, mMin:1.2,mMax:1.2,
+     spinMin:0,spinMax:0, vMode:"none", aroundMass:0, vScale:0, direction:1},
+    {type:"disk", n:70, cx:0,cy:0, radius:36, mMin:1,mMax:1,
+     spinMin:1.8,spinMax:2.2, vMode:"random", aroundMass:0, vScale:0.3, direction:1},
+    {type:"disk", n:60, cx:160,cy:0, radius:38, mMin:0.15,mMax:0.15,
+     spinMin:8,spinMax:10, vMode:"random", aroundMass:0, vScale:3, direction:1}
+  ],
+  overlays:{rotationCurve:false,tempHistogram:false,field:false} },
+
+{ id:"accretion", name:"降着円盤の摩擦発光", emoji:"💫",
+  description:"順行する塵の流れに逆行する塵(2割)が混ざった円盤。すれ違いざまの摩擦で角運動量が打ち消され、塵は光を放ちながら中心星へ落ちていく(降着)。発光はやがて衰え、冷えた地殻が中心星を覆う——この宇宙では高密度の塵は接触で冷えて固まる(三態デモと同じ帰結)。",
+  camera:{scale:260}, world:{boundary:"none",size:0},
+  physics:{G:1, D0:2, kRep:0.3, muF:0.9, gammaN:0.5, kappaS:0.02,
+    etaRad:0.02, pRad:4, timeScale:4},
+  bodies:[
+    {type:"single", m:1200, x:0,y:0, vx:0,vy:0, spin:0.05, pinned:true},
+    {type:"ring", n:250, cx:0,cy:0, rIn:60,rOut:180, mMin:0.1,mMax:0.25,
+     spinMin:0,spinMax:0, vMode:"kepler", aroundMass:1200, omega:0, vNoise:0.05, direction:1, pinned:false},
+    {type:"ring", n:70, cx:0,cy:0, rIn:70,rOut:160, mMin:0.1,mMax:0.25,
+     spinMin:0,spinMax:0, vMode:"kepler", aroundMass:1200, omega:0, vNoise:0.05, direction:-1, pinned:false}
+  ],
+  overlays:{rotationCurve:false,tempHistogram:false,field:false,spectrum:true} },
+
+{ id:"collision", name:"二星団の衝突加熱", emoji:"💥",
+  description:"2つの冷たい星団がまず自らの重力で収縮して固まり、静かに落下しあって激突する。衝突の瞬間、並進運動が摩擦でスピン=熱に変わり(A9)、失われた運動エネルギーは衝突閃光として放射帳簿に記録される(A12。保存量モニタでradEの跳ね上がりが見える)。合体残骸はゆっくり冷える。",
+  camera:{scale:260}, world:{boundary:"none",size:0},
+  physics:{G:2, D0:2, kRep:0.5, muF:1, gammaN:0.3, kappaS:0.02,
+    etaRad:0.0001, pRad:4, timeScale:4},
+  bodies:[
+    {type:"disk", n:85, cx:-120,cy:-40, radius:36, mMin:2,mMax:2.5,
+     spinMin:0,spinMax:0, vMode:"none", aroundMass:0, vScale:0, direction:1},
+    {type:"disk", n:85, cx:120,cy:40, radius:36, mMin:2,mMax:2.5,
+     spinMin:0,spinMax:0, vMode:"none", aroundMass:0, vScale:0, direction:1}
+  ],
+  overlays:{rotationCurve:false,tempHistogram:false,field:false,spectrum:true} },
+
+{ id:"radcool", name:"放射で冷えて固まる星", emoji:"🌠",
+  description:"圧力(スピン斥力)と乱雑な速度で支えられた高温の雲が、放射(Λ∝T⁴)で冷えて圧力を失い、重力で収縮して固まっていく——気体→液体→固体の逆行。右下のスペクトルのピークが長波長側へ移動し続ける(A12/E11)。",
+  camera:{scale:320}, world:{boundary:"circle",size:300},
+  physics:{G:1, D0:5, kFrame:0.5, kRep:1, muF:0.5, gammaN:0.5, kappaS:0.08,
+    etaRad:3e-4, pRad:4, timeScale:2},
+  bodies:[
+    {type:"disk", n:170, cx:0,cy:0, radius:110, mMin:0.8,mMax:1.2,
+     spinMin:2,spinMax:3, vMode:"random", aroundMass:0, vScale:0.8, direction:1}
+  ],
+  overlays:{rotationCurve:false,tempHistogram:false,field:false,spectrum:true} },
 ];
 
 // ===== プリセット・バリデータ(LLM出力/インポートの検証。構造NG=エラー、値域外=クランプ) =====
@@ -374,7 +472,7 @@ function validatePreset(obj){
     if(!p.rays || !isNum(p.rays.n) || !isNum(p.rays.spread)) bad("rays.n/spread が不正です");
     else p.rays={n:clamp(Math.round(p.rays.n),0,64), spread:clamp(p.rays.spread,0,1)};
   }
-  const ov={rotationCurve:false,tempHistogram:false,field:false};
+  const ov={rotationCurve:false,tempHistogram:false,field:false,spectrum:false};
   if(p.overlays!==undefined){
     if(typeof p.overlays!=="object"||Array.isArray(p.overlays)) bad("overlaysはオブジェクト");
     else for(const k of Object.keys(ov)) if(typeof p.overlays[k]==="boolean") ov[k]=p.overlays[k];
@@ -882,6 +980,60 @@ function drawTempHistogram(){
   });
 }
 
+// 放射スペクトル(各粒子のピーク波長 λ=b_m/T の分布。付録C C1)
+let specTick=0, specData=null, specLo=0, specHi=0, specInit=false, specLastT=Infinity;
+function drawSpectrum(){
+  const BINS=28;
+  if(sim.t<specLastT){ specInit=false; specData=null; }  // ⏮/プリセット切替で軸範囲をリセット
+  specLastT=sim.t;
+  if((specTick++%10)===0||!specData){
+    const ls=[], Ts=[], p=sim.params.pRad;
+    let lMin=Infinity, lMax=-Infinity;
+    for(let i=0;i<sim.n;i++){
+      const T=0.5*sim.m[i]*sim.R[i]*sim.R[i]*sim.spin[i]*sim.spin[i];
+      if(T<=1e-9) continue;
+      const l=Math.log10(sim.params.bM/T);
+      ls.push(l); Ts.push(T);
+      if(l<lMin)lMin=l; if(l>lMax)lMax=l;
+    }
+    if(!ls.length){ specData={empty:true}; }
+    else{
+      if(lMax-lMin<1e-6){ lMin-=0.5; lMax+=0.5; }
+      const pad=(lMax-lMin)*0.05; lMin-=pad; lMax+=pad;
+      if(!specInit){ specLo=lMin; specHi=lMax; specInit=true; }
+      else{ specLo+=(lMin-specLo)*0.1; specHi+=(lMax-specHi)*0.1; }
+      const lum=new Float32Array(BINS), tSum=new Float32Array(BINS), tCnt=new Float32Array(BINS);
+      for(let k=0;k<ls.length;k++){
+        let b2=Math.floor((ls[k]-specLo)/(specHi-specLo)*BINS);
+        b2=Math.max(0,Math.min(BINS-1,b2));
+        lum[b2]+=Math.pow(Ts[k],p); tSum[b2]+=Ts[k]; tCnt[b2]++;
+      }
+      let lumMax=0; for(let b2=0;b2<BINS;b2++) if(lum[b2]>lumMax)lumMax=lum[b2];
+      specData={empty:false, lum, tSum, tCnt, lumMax};
+    }
+  }
+  const W=150,H=92,X=cw-W-8,Y=ch-H-8;
+  ctx.fillStyle="rgba(12,16,34,0.82)"; ctx.fillRect(X,Y,W,H);
+  ctx.strokeStyle="#2a3060"; ctx.strokeRect(X,Y,W,H);
+  ctx.font="9px sans-serif"; ctx.fillStyle="#8b93c8";
+  ctx.fillText("放射ピーク λ=b_m/T",X+6,Y+11);
+  if(specData.empty){ ctx.fillText("放射なし(T≈0)",X+6,Y+H/2); return; }
+  const bw=(W-16)/BINS;
+  for(let b2=0;b2<BINS;b2++){
+    if(specData.lum[b2]<=0) continue;
+    // 高さ∝光度^0.15(Λ∝T⁴の比が巨大でも低温の輝線が見えるよう強く圧縮)+最低2px
+    const h=Math.max(2,Math.pow(specData.lum[b2]/specData.lumMax,0.15)*(H-30));
+    const Tm=specData.tCnt[b2]? specData.tSum[b2]/specData.tCnt[b2] : 0;
+    ctx.fillStyle=tempColor(Math.min(1,Math.sqrt(Tm/Math.max(1e-4,tempP90EMA))));
+    ctx.fillRect(X+8+b2*bw, Y+H-14-h, Math.max(1.5,bw-1), h);
+  }
+  ctx.fillStyle="#8b93c8";
+  ctx.fillText("短λ=高温",X+6,Y+H-3);
+  const txt="長λ=低温"; ctx.fillText(txt,X+W-6-ctx.measureText(txt).width,Y+H-3);
+  ctx.fillText(fmt(Math.pow(10,specLo)),X+8,Y+22);
+  const t2=fmt(Math.pow(10,specHi)); ctx.fillText(t2,X+W-8-ctx.measureText(t2).width,Y+22);
+}
+
 // 背景の微星(装飾)
 let bgStars=null;
 function drawBG(){
@@ -949,6 +1101,7 @@ function render(){
   }
   if(sim.overlays.rotationCurve) drawRotationCurve();
   if(sim.overlays.tempHistogram) drawTempHistogram();
+  if(sim.overlays.spectrum) drawSpectrum();
 }
 
 // ===== メインループ =====
@@ -1106,6 +1259,7 @@ function buildParamRows(){
     ["field","決定力マップ",()=>!!sim.overlays.field,(v)=>sim.overlays.field=v],
     ["rotationCurve","回転曲線グラフ",()=>!!sim.overlays.rotationCurve,(v)=>sim.overlays.rotationCurve=v],
     ["tempHistogram","温度グラフ",()=>!!sim.overlays.tempHistogram,(v)=>sim.overlays.tempHistogram=v],
+    ["spectrum","スペクトル",()=>!!sim.overlays.spectrum,(v)=>sim.overlays.spectrum=v],
     ["monitor","保存量モニタ(P・L・帳簿)",()=>monitorOn,(v)=>monitorOn=v]];
   toggles.forEach(([id,label,get,set])=>{
     const row=document.createElement("div"); row.className="prow";
