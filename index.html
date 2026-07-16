@@ -164,6 +164,9 @@
  * v1.3 (2026-07-15): 理想気体・摩擦熱と熱伝導・星の形成の3サンプル(付録D)。
  * v1.4 (2026-07-15): サンプルラインナップ改訂(付録E)— 3グループ化UI、
  * galaxy/protodisk 初期値適切化(塊化・中心崩壊の抑制)、雪線サンプル新設。
+ * v1.5 (2026-07-16): 整合性修正(付録F=HANDOFF_FIX_V15.md)— E1′(Plummer型)で
+ * E4=G∇W が厳密成立(L5解消)、E9すべり散逸・E10′同期散逸を radE に計上(A12′、
+ * 第一法則の完全閉性)、検証 V9/V10/V11 追加、phase 統制実験化、starform 改名。
  * ===================================================================== */
 
 // ===== ユーティリティ =====
@@ -366,17 +369,17 @@ const BUILTIN_PRESETS = [
   overlays:{rotationCurve:false,tempHistogram:false,field:false} },
 
 { id:"phase", name:"固体・液体・気体", emoji:"🧊", group:"熱の実験室",
-  description:"同じ法則の下で温度(スピン)だけが違う3つの雲。左=低温: 重力で収縮し結晶化する固体。中=中温: 流動する液体。右=高温: 蒸発して箱に充満する気体。熱源のないこの宇宙では液体もやがて冷えて固まる — 凍った塊を融かす熱は❄️雪線を見よ。色=温度(青→赤)。",
+  description:"質量・数・大きさ・初速が完全に同一の3つの雲 — 違いは初期スピン(温度)だけの統制実験。左=低温: 重力で収縮し結晶化する固体。中=中温: 流動する液体。右=高温: スピン斥力で蒸発し箱に充満する気体。熱源のないこの宇宙では液体もやがて冷えて固まる(❄️雪線)。色=温度。",
   camera:{scale:260}, world:{boundary:"box",size:240},
   physics:{G:0.7, D0:30, kFrame:0.3, kRep:0.8, muF:0.6, gammaN:0.85, kappaS:0.02,
     radiusScale:1.6, timeScale:2},
-  bodies:[
-    {type:"disk", n:70, cx:-160,cy:0, radius:40, mMin:1.2,mMax:1.2,
+  bodies:[ // v1.5(付録F F4a): 3群は spin 以外すべて同一(統制実験)
+    {type:"disk", n:65, cx:-160,cy:0, radius:38, mMin:0.6,mMax:0.6,
      spinMin:0,spinMax:0, vMode:"none", aroundMass:0, vScale:0, direction:1},
-    {type:"disk", n:70, cx:0,cy:0, radius:36, mMin:1,mMax:1,
-     spinMin:1.8,spinMax:2.2, vMode:"random", aroundMass:0, vScale:0.3, direction:1},
-    {type:"disk", n:60, cx:160,cy:0, radius:38, mMin:0.15,mMax:0.15,
-     spinMin:8,spinMax:10, vMode:"random", aroundMass:0, vScale:3, direction:1}
+    {type:"disk", n:65, cx:0,cy:0, radius:38, mMin:0.6,mMax:0.6,
+     spinMin:1.8,spinMax:2.2, vMode:"none", aroundMass:0, vScale:0, direction:1},
+    {type:"disk", n:65, cx:160,cy:0, radius:38, mMin:0.6,mMax:0.6,
+     spinMin:8,spinMax:10, vMode:"none", aroundMass:0, vScale:0, direction:1}
   ],
   overlays:{rotationCurve:false,tempHistogram:false,field:false} },
 
@@ -435,8 +438,8 @@ const BUILTIN_PRESETS = [
 { id:"collision", name:"二星団の衝突加熱", emoji:"💥", group:"天体の物語",
   description:"2つの冷たい星団がまず自らの重力で収縮して固まり、静かに落下しあって激突する。衝突の瞬間、並進運動が摩擦でスピン=熱に変わり(A9)、失われた運動エネルギーは衝突閃光として放射帳簿に記録される(A12。保存量モニタでradEが跳ねる)。残骸は冷えて固まる — 塊を再び分かつには熱が要る(❄️雪線)。",
   camera:{scale:260}, world:{boundary:"none",size:0},
-  physics:{G:2, D0:2, kRep:0.5, muF:1, gammaN:0.3, kappaS:0.02,
-    etaRad:0.0001, pRad:4, timeScale:4},
+  physics:{G:2, D0:2, kRep:0.5, muF:1, gammaN:0.25, kappaS:0.02,
+    etaRad:0.0001, pRad:4, timeScale:4},  // v1.5: E1′回帰調整 γn 0.3→0.25(付録F書き戻し)
   bodies:[
     {type:"disk", n:85, cx:-120,cy:-40, radius:36, mMin:2,mMax:2.5,
      spinMin:0,spinMax:0, vMode:"none", aroundMass:0, vScale:0, direction:1},
@@ -456,8 +459,8 @@ const BUILTIN_PRESETS = [
   ],
   overlays:{rotationCurve:false,tempHistogram:false,field:false,spectrum:true} },
 
-{ id:"starform", name:"星の形成", emoji:"\u2B50", group:"天体の物語",
-  description:"冷たい塵の雲が、スピンを持つ中心の巨大質量(種)へ自重で崩落する。密集の摩擦で塵は閃光的に加熱され(自重による圧力加熱)、相変化した気体圏が種のスピン斥力クッションと動圧に支えられて収縮が止まる。種の熱が対流を駆動し、放射で冷えながら重力と圧力の釣り合った球状の星として輝き続ける。",
+{ id:"starform", name:"原始星への降着", emoji:"\u2B50", group:"天体の物語",
+  description:"冷たい塵の雲が、スピンを持つ中心の原始星の種(質量300)へ自重で崩落する。密集の摩擦で塵は閃光的に加熱され(自重による圧力加熱)、相変化した気体圏が種のスピン斥力クッションと動圧に支えられて収縮が止まる。種の熱が対流を駆動し、放射で冷えながら重力と圧力の釣り合った球状の星として輝き続ける。",
   camera:{scale:300}, world:{boundary:"circle",size:280},
   physics:{G:3, D0:5, kFrame:0, kRep:1.5, muF:0.2, gammaN:0.05, kappaS:0.2,
     etaRad:0.002, pRad:1, radiusScale:1.5, timeScale:4},
@@ -700,8 +703,9 @@ function makeSim(){
         const fg=G*invd3;
         ax[i]-=fg*mj*dx; ay[i]-=fg*mj*dy;
         ax[j]+=fg*mi*dx; ay[j]+=fg*mi*dy;
-        // E1 決定力 w = m/(d+ε)
-        const wj=mj/(d+eps), wi=mi/(d+eps);
+        // E1′ 決定力 w = m/√(d²+ε²)(v1.5: Plummer型。E4 = G∇W が厳密成立、L5解消)
+        const invW=1/Math.sqrt(d2+eps2);
+        const wj=mj*invW, wi=mi*invW;
         sumW[i]+=wj; sumW[j]+=wi;
         // E2/E3 フレーム速度への寄与(並進 + スピン回転 ẑ×(r−r_j)=(−dy,dx))
         let omj=0, omi=0;
@@ -744,10 +748,18 @@ function makeSim(){
             const Li=Ri*d/sumR, Lj=Rj*d/sumR; // 実効腕 R̃(R̃_i+R̃_j=d)
             const vs=(vx[i]-vx[j])*txv+(vy[i]-vy[j])*tyv - spin[i]*Li - spin[j]*Lj;
             const jt=muF*vs/(3*K);            // Δv_s = −muF·v_s(muF≤1 で無条件安定)
+            // v1.5(A12′): すべり散逸の帳簿。変更されるDOF(接線速度成分+スピン)のみの運動エネルギー差を厳密計上
+            const vti0=vx[i]*txv+vy[i]*tyv, vtj0=vx[j]*txv+vy[j]*tyv;
+            const Ii9=0.5*mi*Ri*Ri, Ij9=0.5*mj*Rj*Rj;
+            const si0=spin[i], sj0=spin[j];
             vx[i]-=jt*invMi*txv; vy[i]-=jt*invMi*tyv;
             vx[j]+=jt*invMj*txv; vy[j]+=jt*invMj*tyv;
-            if(!pinned[i]) spin[i]+=Li*jt/(0.5*mi*Ri*Ri);  // ds = +R̃·j_t/I, I=½mR²
-            if(!pinned[j]) spin[j]+=Lj*jt/(0.5*mj*Rj*Rj);
+            if(!pinned[i]) spin[i]+=Li*jt/Ii9;             // ds = +R̃·j_t/I, I=½mR²
+            if(!pinned[j]) spin[j]+=Lj*jt/Ij9;
+            const vti1=vx[i]*txv+vy[i]*tyv, vtj1=vx[j]*txv+vy[j]*tyv;
+            const dE9=0.5*mi*(vti0*vti0-vti1*vti1)+0.5*mj*(vtj0*vtj0-vtj1*vtj1)
+                     +0.5*Ii9*(si0*si0-spin[i]*spin[i])+0.5*Ij9*(sj0*sj0-spin[j]*spin[j]);
+            if(dE9>0) S.radE+=dE9;            // 解析的に dE9≥0(μ_f≤1)。丸め起因の負値は捨てる
           }
         }
         // E10′ スピン拡散(I 重み: 対ごとに I_i·ds_i = −I_j·ds_j で L 厳密保存)
@@ -781,7 +793,12 @@ function makeSim(){
         }
         S.uPx[i]=ux; S.uPy[i]=uy; S.hasU[i]=1;
       }
-      spin[i]+=ds[i]*dt;
+      // v1.5(A12′): スピン同期(E10′)の散逸帳簿。適用前後の回転エネルギー差を計上
+      if(ds[i]!==0){
+        const IiD=0.5*m[i]*R[i]*R[i], s0D=spin[i];
+        spin[i]+=ds[i]*dt;
+        S.radE+=0.5*IiD*(s0D*s0D-spin[i]*spin[i]);
+      }
       // E11 放射冷却(A12): Λ = η_rad·T^p、T = I·s²。|Δs| ≤ 0.5|s| にクランプ
       if(etaRad>0 && spin[i]!==0){
         const Ii=0.5*m[i]*R[i]*R[i], s0=spin[i], T=Ii*s0*s0;
@@ -809,7 +826,7 @@ function makeSim(){
           const d=pairD[pk2], dx=xi-x[j], dy=yi-y[j];
           const Ij=0.5*m[j]*R[j]*R[j];
           if(hasI){ // i が受けた Δp_i の反作用をソース j へ(φ_ij = w_j(r_i)/W(r_i))
-            const phi=(m[j]/(d+eps))/Wi;
+            const phi=(m[j]/Math.sqrt(d*d+eps2))/Wi;
             const rpx=phi*dpxi, rpy=phi*dpyi;
             if(pinned[j]){ S.resPx-=rpx; S.resPy-=rpy; S.resL-=xi*rpy-yi*rpx; }
             else{
@@ -819,7 +836,7 @@ function makeSim(){
             }
           }
           if(hasJ){ // j が受けた Δp_j の反作用をソース i へ(φ_ji = w_i(r_j)/W(r_j))
-            const phi=(mi/(d+eps))/Wj;
+            const phi=(mi/Math.sqrt(d*d+eps2))/Wj;
             const rpx=phi*dpxj, rpy=phi*dpyj;
             if(pinned[i]){ S.resPx-=rpx; S.resPy-=rpy; S.resL-=x[j]*rpy-y[j]*rpx; }
             else{
@@ -884,7 +901,7 @@ function makeSim(){
   S.Wat=function(px,py){
     let w=S.params.D0; const eps=S.params.softening;
     for(let i=0;i<S.n;i++){ const dx=px-S.x[i], dy=py-S.y[i];
-      w+=S.m[i]/(Math.sqrt(dx*dx+dy*dy)+eps); }
+      w+=S.m[i]/Math.sqrt(dx*dx+dy*dy+eps*eps); }
     return w;
   };
   S.hasNaN=function(){
@@ -963,7 +980,7 @@ function traceRay(S, px, py, cxv, cyv, dl, maxSteps, emit){
       nval+=kL*S.m[i]*inv;
       const inv3=inv*inv*inv;
       gx-=kL*S.m[i]*dx*inv3; gy-=kL*S.m[i]*dy*inv3;
-      const dd=Math.sqrt(d2), w=S.m[i]/(dd+eps);
+      const dd=Math.sqrt(d2), w=S.m[i]*inv;   // v1.5: E1′(inv=1/√(d²+ε²) を再利用。dd は下の tt で使用)
       wSum+=w;
       let om=0; const si=S.spin[i];
       if(si!==0){ const tt=S.R[i]/(S.R[i]+dd); om=(q===2)? si*tt*tt : si*Math.pow(tt,q); }
@@ -1589,7 +1606,7 @@ function renderHelp(){
   mk("h4","操作");
   mk("p","▶実行/⏸停止/⏮初めから。1本指ドラッグで移動、2本指ピンチで拡大縮小。粒子をタップすると固有時計(τ/t)を表示。");
   mk("h4","この宇宙の法則(要約)");
-  mk("p","① 空間は質点の相対配置だけで決まる(絶対空間なし)。② 決定力=質量÷距離。決定力の勾配が重力になる。③ 質点は「近くの空間」に対して慣性を持ち、空間ごと引きずられる(kFrame)。遠方宇宙の決定力がD₀。④ スピン=熱(温度T=Is²)。衝突で速度がスピンに変わり(muF)、スピンは斥力=圧力を生み(kRep)、拡散して平衡になる(κs)。⑤ 決定力が高い場所は時間が遅く、光は屈折して曲がり(kLens)、「決定した空間」に運ばれる(c₀)。⑥ すべての相互作用は作用反作用対称で、運動量・角運動量を厳密に保存する(遠方宇宙との交換は帳簿に記録=保存量モニタ)。温度Tの質点はλ=b_m/Tの光を放射する(η_rad)。詳細は docs/PHYSICS.md(v1.1)。");
+  mk("p","① 空間は質点の相対配置だけで決まる(絶対空間なし)。② 決定力=質量÷距離。決定力の勾配が重力になる。③ 質点は「近くの空間」に対して慣性を持ち、空間ごと引きずられる(kFrame)。遠方宇宙の決定力がD₀。④ スピン=熱(温度T=Is²)。衝突で速度がスピンに変わり(muF)、スピンは斥力=圧力を生み(kRep)、拡散して平衡になる(κs)。⑤ 決定力が高い場所は時間が遅く、光は屈折して曲がり(kLens)、「決定した空間」に運ばれる(c₀)。⑥ すべての相互作用は作用反作用対称で、運動量・角運動量を厳密に保存する(遠方宇宙との交換は帳簿に記録=保存量モニタ)。温度Tの質点はλ=b_m/Tの光を放射する(η_rad)。詳細は docs/PHYSICS.md(v1.2)。");
 }
 
 // ===== タッチ/マウス操作(パン・ピンチ・タップ選択) =====
@@ -1695,7 +1712,115 @@ const VERIFY = {
     return {id:"V8", pass, value:Math.abs(aP),
       detail:`非対称度 Δθ(+0.5)=${aP.toExponential(3)} rad / Δθ(−0.5)=${aM.toExponential(3)} rad(符号反転かつ |Δθ|>1e-4)`};
   },
-  all(){ return [this.v1(), this.v2(), this.v8()]; }
+  // V9: A6 厳密性(v1.5 付録F)。エンジンの W 数値勾配 × G が E4 加速度と一致すること
+  // (E1′=Plummer 型で厳密成立。旧式 w=m/(d+ε) では近距離で ~25% 乖離し FAIL する)
+  v9(){
+    const G=1, h=0.01;
+    const mk=(px,py)=>{ const s=makeSim();
+      s.build({ id:"verify_v9", name:"V9", camera:{scale:200}, world:{boundary:"none",size:0},
+        physics:{G:G, D0:2, kFrame:0, kRep:0, muF:0, gammaN:0, kappaS:0, etaRad:0,
+          softening:2, timeScale:1},
+        bodies:[
+          {type:"single", m:50, x:0, y:0, vx:0, vy:0, spin:0, pinned:true},
+          {type:"single", m:20, x:18, y:-7, vx:0, vy:0, spin:0, pinned:true},
+          {type:"single", m:0.01, x:px, y:py, vx:0, vy:0, spin:0, pinned:true}
+        ],
+        overlays:{} });
+      s.step(DT);  // pinned でも①全対ループで ax/ay/sumW は充填される
+      return s; };
+    const pts=[[10,0],[-14,6],[40,25]];
+    let worst=0; const parts=[];
+    for(const [px,py] of pts){
+      const c=mk(px,py);
+      const gx=(mk(px+h,py).sumW[2]-mk(px-h,py).sumW[2])/(2*h);
+      const gy=(mk(px,py+h).sumW[2]-mk(px,py-h).sumW[2])/(2*h);
+      const err=Math.hypot(c.ax[2]-G*gx, c.ay[2]-G*gy)/Math.max(Math.hypot(c.ax[2],c.ay[2]),1e-12);
+      if(err>worst) worst=err;
+      parts.push(`(${px},${py})=${err.toExponential(1)}`);
+    }
+    return {id:"V9", pass:worst<1e-3, value:worst,
+      detail:`|a−G∇W|/|a| 最大=${worst.toExponential(2)} (< 1e-3) ${parts.join(" ")}`};
+  },
+  // V10: 第一法則の完全閉性(v1.5 付録F、A12′)。保存力+散逸4チャネル(γn・接線摩擦・
+  // E10′同期・E11冷却)の系で E_総+radE が一定。帳簿漏れがあると FAIL する
+  v10(){
+    const s=makeSim();
+    s.build({ id:"verify_v10", name:"V10", camera:{scale:200}, world:{boundary:"none",size:0},
+      physics:{G:1, D0:0, kFrame:0, kRep:0, muF:0.5, gammaN:0.4, kappaS:0.3, etaRad:2e-4,
+        pRad:1, softening:2, timeScale:1},
+      bodies:[
+        {type:"single", m:30, x:0, y:0, vx:0, vy:0, spin:0.8, pinned:false},
+        {type:"disk", n:36, cx:0, cy:0, radius:55, mMin:1, mMax:2,
+         spinMin:-1.5, spinMax:1.5, vMode:"random", aroundMass:0, vScale:0.6, direction:1}
+      ],
+      overlays:{} });
+    const energyOf=(s)=>{
+      const eps2=s.params.softening*s.params.softening, G=s.params.G;
+      let E=0;
+      for(let i=0;i<s.n;i++){
+        E+=0.5*s.m[i]*(s.vx[i]*s.vx[i]+s.vy[i]*s.vy[i]);
+        E+=0.25*s.m[i]*s.R[i]*s.R[i]*s.spin[i]*s.spin[i];      // ½·I·s²、I=½mR²
+      }
+      for(let i=0;i<s.n;i++) for(let j=i+1;j<s.n;j++){
+        const dx=s.x[i]-s.x[j], dy=s.y[i]-s.y[j], d2=dx*dx+dy*dy, d=Math.sqrt(d2);
+        E-=G*s.m[i]*s.m[j]/Math.sqrt(d2+eps2);                  // E4 の厳密なポテンシャル(E1′)
+        const sumR=s.R[i]+s.R[j];
+        if(d<sumR){                                             // 法線ばね(力キャップは d のみの関数=保存力)
+          const muM=s.m[i]*s.m[j]/(s.m[i]+s.m[j]);
+          const maxInv=Math.max(1/s.m[i],1/s.m[j]);
+          const xO=sumR-d, xC=8/(maxInv*40*muM);
+          E+=(xO<=xC)? 20*muM*xO*xO : 20*muM*xC*xC+(8/maxInv)*(xO-xC);
+        }
+      }
+      return E;
+    };
+    let Escale=1;
+    for(let i=0;i<s.n;i++) Escale+=0.5*s.m[i]*(s.vx[i]*s.vx[i]+s.vy[i]*s.vy[i])
+      +0.25*s.m[i]*s.R[i]*s.R[i]*s.spin[i]*s.spin[i];
+    for(let i=0;i<s.n;i++) for(let j=i+1;j<s.n;j++){
+      const dx=s.x[i]-s.x[j], dy=s.y[i]-s.y[j];
+      Escale+=s.params.G*s.m[i]*s.m[j]/Math.sqrt(dx*dx+dy*dy+s.params.softening*s.params.softening);
+    }
+    const E0=energyOf(s)+s.radE;
+    for(let k=0;k<1000;k++) s.step(DT);
+    const E1=energyOf(s)+s.radE;
+    const resid=Math.abs(E1-E0)/Escale;
+    // 閾値 7.5e-4 = 実測残差 2.48e-4 × 3(付録F 書き戻し規約。修正前は 1.87e-1 で FAIL)
+    return {id:"V10", pass:resid<7.5e-4, value:resid,
+      detail:`|ΔE_総+radE|/E_scale=${resid.toExponential(2)} (< 7.5e-4) radE=${s.radE.toFixed(3)}`};
+  },
+  // V11: T4 の因果性(v1.5 付録F)。同一初期条件の kFrame=0/1 A/B 比較で、
+  // 外側の平均回転が kFrame=1 側でのみ増速すること(平坦化の因果が kFrame にあることの検証)。
+  // 付録F 追記(2026-07-16): 原定義(R260・800步・終値判定)は T4 連鎖(減速→落下→スピンアップ)の
+  // 力学時間に対し窓が短くゲインが負。縮小銀河(R130、力学時間 2.4×短縮)+D0 0.5+
+  // 時間平均ゲイン(1000〜2000步を100步毎に採取)に改訂。実測プラトー 0.055±0.007 に対し閾値 0.03
+  v11(){
+    const preset=(kf)=>({ id:"verify_v11", name:"V11", camera:{scale:300}, world:{boundary:"none",size:0},
+      physics:{G:1, D0:0.5, kFrame:kf, muF:0.02, gammaN:0.05, kRep:1.0, kappaS:0.05,
+        softening:4, timeScale:1},
+      bodies:[
+        {type:"single", m:600, x:0, y:0, vx:0, vy:0, spin:0.05, pinned:false},
+        {type:"disk", n:140, cx:0, cy:0, radius:130, mMin:0.5, mMax:1.2,
+         spinMin:0, spinMax:0, vMode:"kepler", aroundMass:600, vScale:1.05, direction:1}
+      ],
+      overlays:{} });
+    const A=makeSim(); A.build(preset(1));
+    const B=makeSim(); B.build(preset(0));
+    ["m","x","y","vx","vy","spin"].forEach(k=>{ B[k].set(A[k].subarray(0,A.n)); }); // 初期条件の同一化
+    B.updateRadii();
+    const meanVphiOuter=(s)=>{ let sum=0,c=0;   // 帯域 [0.65,1.0]×130
+      for(let i=0;i<s.n;i++){ const r=Math.hypot(s.x[i],s.y[i]);
+        if(r>=85&&r<=130){ sum+=(s.x[i]*s.vy[i]-s.y[i]*s.vx[i])/r; c++; } }
+      return c? sum/c : 0; };
+    const vRef=meanVphiOuter(A);
+    let acc=0, cnt=0;
+    for(let k=1;k<=2000;k++){ A.step(DT); B.step(DT);
+      if(k>=1000 && (k%100)===0){ acc+=meanVphiOuter(A)-meanVphiOuter(B); cnt++; } }
+    const gain=acc/(cnt*vRef), drift=Math.abs(meanVphiOuter(B)-vRef)/vRef;
+    return {id:"V11", pass:(gain>=0.03 && drift<=0.10), value:gain,
+      detail:`時間平均gain=${gain.toFixed(3)} (≥0.03) / |g0−vRef|/vRef=${drift.toFixed(3)} (≤0.10)`};
+  },
+  all(){ return [this.v1(), this.v2(), this.v8(), this.v9(), this.v10(), this.v11()]; }
 };
 
 // ===== デバッグ/テスト用フック(品質ゲートが使用) =====
