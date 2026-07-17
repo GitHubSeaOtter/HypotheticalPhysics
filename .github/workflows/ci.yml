@@ -1,5 +1,5 @@
 # Phase 1 再現性基盤: push/PR ごとに機械QA(構文・verify 11項目・全プリセット・i18n・
-# few-shot・BH捕捉・インポート/seed・新サンプル挙動・♨️🪐長時間挙動)を実行し、
+# few-shot・BH捕捉・インポート/seed・新サンプル挙動・🪐長時間挙動)を実行し、
 # 機械可読な結果JSONを artifact として保存する(ロードマップ Phase 1 / 第6次裁定)。
 name: QA
 on:

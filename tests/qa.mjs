@@ -1,6 +1,6 @@
 // 機械QAスイート(Phase 1 再現性基盤)。1コマンド実行: `npm test`(または node tests/qa.mjs)
 // - HP.verify.all() / 全内蔵プリセットのスモーク / i18n / few-shot / BH捕捉 / 互換 /
-//   インポート4形式+ID重複 / seed再現性 / 新サンプル挙動 / ♨️🪐の長時間挙動(QA_FAST=1 で省略)
+//   インポート4形式+ID重複 / seed再現性 / 新サンプル挙動 / 🪐の長時間挙動(QA_FAST=1 で省略)
 // - 結果は tests/out/qa-results.json に機械可読で保存(CI が artifact 化)
 // - 1件でも FAIL なら exit code 1
 import { execSync } from 'node:child_process';
@@ -210,29 +210,11 @@ for (const id of await page.evaluate(() => HP.allPresets().filter(p => !String(p
   add('ab.stop', r.stopped, '');
 }
 
-// ---- 8) 長時間挙動: ♨️対流(膠着・循環)と🪐土星(環残存)。QA_FAST=1 で省略 ----
+// ---- 8) 長時間挙動: 🪐土星(環残存)。QA_FAST=1 で省略 ----
+// (♨️対流の検査は v1.14 のプリセット撤去に伴い削除。検査ロジックは git 履歴 v1.13 に残る)
 if (!FAST) {
   const r = await page.evaluate(() => {
     const s = HP.sim, res = {};
-    // ♨️ convection
-    HP.loadPreset('convection', false);
-    const circs = [], centers = []; let stuckLast = 0;
-    for (let k = 1; k <= 24000; k++) { s.step(0.016);
-      if (k % 2000 === 0) {
-        let c = 0, cs = 0, nf = 0, stuck = 0, ctr = 0; const colds = [];
-        for (let i = 0; i < s.n; i++) if (s.pinned[i] && Math.abs(s.spin[i]) < 0.5 && s.m[i] < 100) colds.push(i);
-        for (let i = 0; i < s.n; i++) { if (s.pinned[i]) continue; nf++;
-          cs += s.x[i] * s.vy[i] - s.y[i] * s.vx[i]; c++;
-          if (Math.abs(s.x[i]) < 95 && Math.abs(s.y[i]) < 95) ctr++;
-          if (Math.hypot(s.vx[i], s.vy[i]) <= 0.2) for (const j of colds) { if (Math.hypot(s.x[i] - s.x[j], s.y[i] - s.y[j]) < 24) { stuck++; break; } }
-        }
-        circs.push(cs / c); centers.push(ctr / nf); stuckLast = stuck / nf;
-      } }
-    const latter = circs.slice(6);
-    res.convSign = Math.max(latter.filter(v => v > 0).length, latter.filter(v => v < 0).length);
-    res.convN = latter.length; res.convStuck = stuckLast; res.convNaN = s.hasNaN();
-    // v1.13: 空洞化検査 — 後半サンプルの中央占有率(|x|,|y|<95)最小値。過熱の弾道循環だと 0.00〜0.07 に落ちる
-    res.convCenter = Math.min(...centers.slice(6));
     // 🪐 saturn
     HP.loadPreset('saturn', false);
     for (let k = 0; k < 24000; k++) s.step(0.016);
@@ -241,8 +223,6 @@ if (!FAST) {
     res.satAnn = inAnn / tot; res.satDrift = Math.hypot(s.x[0], s.y[0]); res.satNaN = s.hasNaN();
     return res;
   });
-  add('behavior.convection', !r.convNaN && r.convStuck < 0.08 && r.convSign >= r.convN - 1 && r.convCenter >= 0.08,
-    `stuck=${(r.convStuck * 100).toFixed(1)}% sign=${r.convSign}/${r.convN} center≥${(r.convCenter * 100).toFixed(1)}%`);
   add('behavior.saturn', !r.satNaN && r.satAnn >= 0.95 && r.satDrift < 5,
     `inAnn=${(r.satAnn * 100).toFixed(1)}% drift=${r.satDrift.toFixed(1)}`);
 } else {

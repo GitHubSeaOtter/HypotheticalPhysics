@@ -661,34 +661,8 @@ const BUILTIN_PRESETS = [
   ],
   overlays:{rotationCurve:false,tempHistogram:false,field:false} },
 
-{ id:"convection", name:"加熱の対流 — 床加熱・天井冷却", emoji:"♨️", group:"熱の実験室",
-  description:"床の左〜中央がヒーター(pinned=スピン一定の熱浴)、天井の右側が冷却板(スピン0の熱浴)。温められたガスはスピン斥力(A10)で膨らんで浮かび、天井で熱を渡して(E10′)右から沈む——片側加熱がつくる一方向の対流セル。画面外の遠い大質量が箱全体を下向きに引く重力(A6)の役。※v1.13 機械調整: 加熱が強すぎてガスが壁沿いの弾道循環になり中央が空洞化していた(中央占有0〜7%)ため、ヒーター温度を1段下げた(spin12→10。中央占有13〜17%・膠着1.5%・循環は同方向のまま)。左右の平均温度は右下のグラフ。",
-  en:{name:"Convection — Heated Floor, Cooled Ceiling", description:"The left-to-center floor is a heater (pinned = constant-spin heat bath); sparse cooling plates sit on the right ceiling (spin-0 baths). Warmed gas inflates via spin repulsion (A10), rises, dumps heat at the ceiling (E10′) and sinks on the right — a one-directional convection cell. A distant off-screen mass provides downward gravity (A6). v1.13 machine-tuned: heating was too strong, blasting the gas into a hollow wall-hugging loop (center occupancy 0–7%); lowering the heater temperature (spin 12→10) fills the cell (13–17%, sticking 1.5%, circulation still one-directional). Bottom right: mean temperatures L/R."},
-  camera:{scale:240}, world:{boundary:"box",size:190},
-  physics:{G:1.5, D0:40, kFrame:0.2, kRep:2, muF:0.3, gammaN:0.2, kappaS:0.8,
-    etaRad:1e-5, pRad:2, radiusScale:4, softening:4, timeScale:2},
-  bodies:[ // v1.11(付録K): 機械実験 conv-G4 採用 — ヒーター11点(床左〜中央)+疎な天井冷却板5点
-    {type:"single", m:13000, x:0,y:900, vx:0,vy:0, spin:0, pinned:true},
-    {type:"single", m:1, x:-170,y:186, vx:0,vy:0, spin:10, pinned:true},
-    {type:"single", m:1, x:-150,y:186, vx:0,vy:0, spin:10, pinned:true},
-    {type:"single", m:1, x:-130,y:186, vx:0,vy:0, spin:10, pinned:true},
-    {type:"single", m:1, x:-110,y:186, vx:0,vy:0, spin:10, pinned:true},
-    {type:"single", m:1, x:-90, y:186, vx:0,vy:0, spin:10, pinned:true},
-    {type:"single", m:1, x:-70, y:186, vx:0,vy:0, spin:10, pinned:true},
-    {type:"single", m:1, x:-50, y:186, vx:0,vy:0, spin:10, pinned:true},
-    {type:"single", m:1, x:-30, y:186, vx:0,vy:0, spin:10, pinned:true},
-    {type:"single", m:1, x:-10, y:186, vx:0,vy:0, spin:10, pinned:true},
-    {type:"single", m:1, x:10,  y:186, vx:0,vy:0, spin:10, pinned:true},
-    {type:"single", m:1, x:30,  y:186, vx:0,vy:0, spin:10, pinned:true},
-    {type:"single", m:1, x:10,  y:-186, vx:0,vy:0, spin:0, pinned:true},
-    {type:"single", m:1, x:50,  y:-186, vx:0,vy:0, spin:0, pinned:true},
-    {type:"single", m:1, x:90,  y:-186, vx:0,vy:0, spin:0, pinned:true},
-    {type:"single", m:1, x:130, y:-186, vx:0,vy:0, spin:0, pinned:true},
-    {type:"single", m:1, x:170, y:-186, vx:0,vy:0, spin:0, pinned:true},
-    {type:"box", n:260, cx:0,cy:-10, w:340,h:320, mMin:0.05,mMax:0.05,
-     spinMin:1,spinMax:2, vScale:0.4}
-  ],
-  overlays:{rotationCurve:false,tempHistogram:true,field:false} },
+// ♨️加熱の対流(convection)は v1.14 で撤去(原仮定者の指示)。構成と機械調整の系譜は
+// DERIVATIONS 付録K/付録M および HANDOFF_IMPLEMENTATION に記録が残る。
 
 // ===== グループ: 天体の物語 =====
 { id:"saturn", name:"土星の環", emoji:"🪐", group:"天体の物語",
@@ -1370,7 +1344,7 @@ function drawRotationCurve(){
     }
     curveData={meas,kep};
   }
-  const W=150,H=92,X=cw-W-8,Y=ch-H-8;
+  const W=150,H=92,X=cw-W-8,Y=ch-H-28; // v1.14: 下端28px — 選択粒子の情報行(左下 y=ch-10, 10px)と重ならない高さ
   ctx.fillStyle="rgba(12,16,34,0.82)"; ctx.fillRect(X,Y,W,H);
   ctx.strokeStyle="#2a3060"; ctx.strokeRect(X,Y,W,H);
   ctx.font="9px sans-serif"; ctx.fillStyle="#8b93c8";
@@ -1400,7 +1374,7 @@ function drawTempHistogram(){
     sim.tempLR=[cl?sl/cl:0, cr?sr/cr:0];
     sim.histT.push(sim.tempLR.slice()); if(sim.histT.length>60) sim.histT.shift();
   }
-  const W=150,H=92,X=cw-W-8,Y=ch-H-8;
+  const W=150,H=92,X=cw-W-8,Y=ch-H-28; // v1.14: 下端28px — 選択粒子の情報行(左下 y=ch-10, 10px)と重ならない高さ
   ctx.fillStyle="rgba(12,16,34,0.82)"; ctx.fillRect(X,Y,W,H);
   ctx.strokeStyle="#2a3060"; ctx.strokeRect(X,Y,W,H);
   ctx.font="9px sans-serif"; ctx.fillStyle="#8b93c8";
@@ -1451,7 +1425,7 @@ function drawSpectrum(){
       specData={empty:false, lum, tSum, tCnt, lumMax};
     }
   }
-  const W=150,H=92,X=cw-W-8,Y=ch-H-8;
+  const W=150,H=92,X=cw-W-8,Y=ch-H-28; // v1.14: 下端28px — 選択粒子の情報行(左下 y=ch-10, 10px)と重ならない高さ
   ctx.fillStyle="rgba(12,16,34,0.82)"; ctx.fillRect(X,Y,W,H);
   ctx.strokeStyle="#2a3060"; ctx.strokeRect(X,Y,W,H);
   ctx.font="9px sans-serif"; ctx.fillStyle="#8b93c8";
