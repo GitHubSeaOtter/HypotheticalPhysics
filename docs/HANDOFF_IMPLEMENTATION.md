@@ -1101,3 +1101,69 @@ center 11.2%。**撤去は不要と判断**(窓は狭いが機械検証で固定
 `node tests/qa.mjs` 全PASS(新規: version.sync / slider.covers-builtins / ext.detect / ext.panel /
 absuggest.valid / absuggest.one-tap / claim.galaxy-flatten の7項目)+外部要素バッジと
 おすすめA/Bボタンの視覚確認。
+
+---
+
+## 付録O: v1.16 — 弱場GR較正デモ(🛰️grcal)と論文図生成パイプライン(2026-07-17)
+
+設計担当: Fable 5(本セッション)。実装は本付録の確定値どおりに書き下す(判断語ゼロ)。
+ロードマップ Phase 1 残作業「弱場GR較正デモ」+ Phase 5「論文図の機械生成」の実行指示書。
+
+### O1. 🛰️ grcal プリセット(エンジン変更なし — プリセット追加のみ)
+
+- 目的: 現実較正(DERIVATIONS §12.2)の4数値 — GPS +38.5μs/日(重力+45.7・運動−7.2)・
+  太陽縁偏向 1.7512″・シャピロ ≈281μs・水星1PN非再現 — を**説明文で数値表示**し、
+  シミュレーション側は同じ ψ 機構のアナログ(地上時計 vs 周回衛星時計+光線ファン)を見せる。
+- 配置: group「空間と時間」、gclock の直後。id:"grcal"、emoji:"🛰️"。
+- 構成(確定値):
+  - physics: { G:1, D0:0, kFrame:0, kRep:0, muF:0, gammaN:0, kappaS:0, etaRad:0,
+    Kt:300, cLight:60, softening:2, timeScale:2 }
+  - bodies: 中心星 m1500 pinned / 地上時計 m2 (60,0) pinned /
+    衛星時計 m2 (180,0) vy=2.8865(Plummer 厳密円軌道 v=√(G·M·r²/(r²+ε²)^{3/2})、V13 と同式)
+  - rays: { n:9, spread:0.4 }、camera scale 280、overlays field:true
+  - abSuggest: { param:"Kt", value:150 }(Kt を下げると時計差と湾曲が同時に拡大 = ψ 統一)
+- 解析値(説明文に記載する): 地上 τ/t = e^{−ψ} = 0.920(ψ=1500/60.03/300)、
+  衛星 τ/t = √(N²−A²v²/c₀²) = 0.971 — **衛星の方が速く進む**(重力項が運動項に勝つ)=
+  実 GPS の +38.5μs/日(+45.7−7.2)と同じ符号構造。
+- 説明文に必須の要素(ja/en 両方): 法則参照(A7′/E7R/E8R/T5)≥1(theory.refs-all)、
+  数値 "38.5"・"1.7512"・"281"、水星非再現(Negative claim 5)への言及、τ/t 0.920/0.971。
+- バージョン: APP_VERSION "1.15"→"1.16"、package.json 1.16.0(version.sync)。
+- SYSTEM_PROMPT・few-shot・バリデータ・エンジンは**不変更**。
+
+### O2. QA 追加(tests/qa.mjs、grcal 3項目)
+
+1. `grcal.clocks`: プリセットロード後 1000步、地上 τ/t が e^{−ψ} と、衛星 τ/t が
+   √(N²−A²v²/c₀²) と相対誤差 <2e-3 で一致し、かつ 衛星 τ/t > 地上 τ/t(GPS 符号)。
+2. `grcal.calib-text`: ja/en 説明文の双方に "38.5"・"1.7512"・"281" が含まれる。
+3. `grcal.rays`: preset.rays.n ≥ 5(光線ファンの存在=偏向の可視化)。
+- 既存の自動追随: プリセットスモーク(allPresets 動的列挙)・i18n(en 必須)・
+  slider.covers-builtins(Kt300 は既存 gclock と同値で範囲内)・ext バッジ(pinned 検出は仕様)。
+
+### O3. 図生成パイプライン(tools/gen-figures.mjs)
+
+- 依存: qa.mjs と同じ playwright(-core)+同梱 Chromium。エンジンは index.html の HP フック。
+- 出力: `paper/figures/fig{1..6}.svg` + 同 `.pdf`(Chromium print-to-PDF、px=1/96in)+
+  同 `.json`(生成パラメータ・実測値・コミットハッシュ。図の機械可読な出典)。
+- 図の契約(論文キャプションと1:1。乖離したらキャプション側を実測に合わせて更新):
+  1. mach D₀スキャン: D₀∈{0.05,0.5,2,8,32}、各2500步、内側粒子(index 14..53)の
+     平均角速度/シェル角速度0.012(末尾500步平均)。破線=解析フレーム比 w̄(0)/(w̄(0)+D₀)。
+  2. galaxy A/B: 実プリセット+HP.abStart("kFrame",0)、6000步、幅20の半径ビンで
+     vφ(r) を A/B 別に集計+ケプラー曲線 √(600/r)。
+  3. V6 同構成3ラン(S=+0.05/−0.05×kF1、対照 kF0)の Δϖ°/周 棒グラフ+
+     drag プリセット30000步のロゼット軌跡。
+  4. V12/V13/V16 同構成の τ/t 実測 vs 解析(6時計の対比棒)。
+  5. lensing 実プリセットの26本光線ファン(x₀=−300, dl=300/110, 340步)+
+     V8 構成(m1500, spin+0.5, Kt=500)のファンと非対称度。
+  6. gas 4000步の左右平均温度時系列(位置 x<0 / x>0、25步毎)+
+     pressure 16000步の高温コア(先頭90粒子)平均半径時系列(50步毎)。
+- 実行: `node tools/gen-figures.mjs`(全図)/ 環境変数 FIG=2,5 で個別再生成。
+
+### O4. 受け入れ条件(v1.16)
+
+- [ ] `node tests/qa.mjs` 全PASS(63項目=v1.15の59+grcal 3+プリセットスモーク1。verify 11項目・21プリセットの回帰含む)
+- [ ] grcal: エンジン差分ゼロ(git diff が BUILTIN_PRESETS 配列と APP_VERSION のみ)
+- [ ] gen-figures: 図6枚の svg/pdf/json が生成され、fig2 の外縁比 >1.04・
+      fig3 の符号(+S後退/−S前進)・fig4 の全誤差 <1e-3 が json 上で成立
+- [ ] dfm-paper.tex: プレースホルダ6枠を \includegraphics に差し替え、
+      HANDOFF_PAPER_V2 §7 の受け入れ grep が引き続き0件
+- [ ] README(計21種・v1.16履歴)・paper/README.md(図生成手順)同期

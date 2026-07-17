@@ -18,8 +18,9 @@ async function getBrowser() {
   // CI: playwright(npm install でブラウザ管理)。ローカル: playwright-core + 既存 Chromium も可。
   // どちらも無い環境では PLAYWRIGHT_CORE_DIR(playwright-core 入り node_modules を持つディレクトリ)を指定。
   const exe = process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
-  try { const { chromium } = await import('playwright'); return chromium.launch(); } catch {}
-  try { const { chromium } = await import('playwright-core'); return chromium.launch({ executablePath: exe }); } catch {}
+  // v1.16: await を付けて launch 失敗(同梱ブラウザとの版ずれ等)を捕捉し、次の経路へ確実に落とす
+  try { const { chromium } = await import('playwright'); return await chromium.launch(); } catch {}
+  try { const { chromium } = await import('playwright-core'); return await chromium.launch({ executablePath: exe }); } catch {}
   const dir = process.env.PLAYWRIGHT_CORE_DIR;
   if (dir) {
     const { createRequire } = await import('node:module');
@@ -223,6 +224,39 @@ for (const id of await page.evaluate(() => HP.allPresets().filter(p => !String(p
   });
   add('ext.detect', r.gcPin === 4 && r.f8Pin === 0 && r.mcRail && r.mcBath, JSON.stringify(r)); // gclock は中心+時計3つの全4粒子が pinned(静止統制実験)
   add('ext.panel', r.shown && r.closed, '');
+}
+
+// ---- 7f) 🛰️弱場GR較正デモ(v1.16 付録O): 時計の解析一致・較正数値の表示・光線ファン ----
+{
+  const r = await page.evaluate(() => {
+    const p = HP.allPresets().find(q => q.id === 'grcal');
+    if (!p) return { missing: true };
+    HP.loadPreset('grcal', false);
+    const s = HP.sim;
+    for (let k = 0; k < 1000; k++) s.step(0.016);
+    const eps = s.params.softening, Kt = s.params.Kt, c0 = s.params.cLight, M = s.m[0];
+    // 地上時計(pinned, r=60): τ/t = e^{−ψ}
+    const psiG = (M / Math.sqrt(60 * 60 + eps * eps) + 2 / Math.sqrt(120 * 120 + eps * eps)) / Kt;
+    // 衛星(r=180 円軌道): τ/t = √(N²−A²v²/c₀²)(v は現在速度。他時計の w も W_ext に含める)
+    const rS = Math.hypot(s.x[2], s.y[2]);
+    const dG = Math.hypot(s.x[2] - s.x[1], s.y[2] - s.y[1]);
+    const psiS = (M / Math.sqrt(rS * rS + eps * eps) + 2 / Math.sqrt(dG * dG + eps * eps)) / Kt;
+    const v = Math.hypot(s.vx[2], s.vy[2]);
+    const N = Math.exp(-psiS), A = Math.exp(psiS);
+    const thS = Math.sqrt(N * N - A * A * v * v / (c0 * c0));
+    const g = s.tau[1] / s.t, sat = s.tau[2] / s.t;
+    const errG = Math.abs(g - Math.exp(-psiG)) / Math.exp(-psiG);
+    const errS = Math.abs(sat - thS) / thS;
+    const hasNums = (t) => t.includes('38.5') && t.includes('1.7512') && t.includes('281');
+    return { missing: false, errG, errS, gpsSign: sat > g, g, sat,
+      textJa: hasNums(p.description), textEn: hasNums(p.en.description),
+      rays: p.rays && p.rays.n >= 5, nan: s.hasNaN() };
+  });
+  add('grcal.clocks', !r.missing && !r.nan && r.errG < 2e-3 && r.errS < 2e-3 && r.gpsSign,
+    r.missing ? 'preset missing' :
+      `τ/t 地上=${r.g?.toFixed(4)} 衛星=${r.sat?.toFixed(4)} err=${r.errG?.toExponential(1)}/${r.errS?.toExponential(1)} 衛星>地上=${r.gpsSign}`);
+  add('grcal.calib-text', !r.missing && r.textJa && r.textEn, `ja=${r.textJa} en=${r.textEn}`);
+  add('grcal.rays', !r.missing && r.rays, '');
 }
 
 // ---- 7e) おすすめA/B(v1.15 第7次裁定): abSuggest 宣言の妥当性とワンタップ開始 ----
