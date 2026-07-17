@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use this software or the DFM theory documents, please cite as below. / 本ソフトウェア・理論文書を利用する場合は以下を引用してください。"
+type: software
+title: "Virtual Physics Lab — Determinacy-Field Mechanics (DFM) Simulator"
+abstract: >-
+  An educational toy-model universe: a single scalar "determinacy" field W and
+  a spin-as-heat degree of freedom generate inertia, inverse-square gravity,
+  frame dragging, time dilation, light bending, and thermodynamics-like
+  behavior in a self-contained single-HTML 2D simulator. Not a substitute
+  theory for real-world physics (see Negative claims in
+  docs/THEORY_SYNTHESIS.md).
+authors:
+  - family-names: "Imamura"
+    given-names: "Tetsuya"
+repository-code: "https://github.com/GitHubSeaOtter/HypotheticalPhysics"
+license: MIT
+version: "1.11"
+date-released: "2026-07-16"
+keywords:
+  - Mach's principle
+  - frame dragging
+  - toy model
+  - physics education
+  - relational mechanics
+  - hypothetical physics
