@@ -1,0 +1,16 @@
+{
+ "figure": 6,
+ "generated": "2026-07-17T22:27:44.007Z",
+ "commit": "41b3665",
+ "presets": "gas (16000 steps, every 100) + pressure (16000 steps, every 50)",
+ "coreRadius": {
+  "start": 34.45,
+  "end": 140.92,
+  "ratio": 4.090566037735848
+ },
+ "tempGap": {
+  "start": 4.340360211821656,
+  "end": 0.475628618343258,
+  "ratio": 0.1095827523825807
+ }
+}

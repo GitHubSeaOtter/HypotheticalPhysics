@@ -444,7 +444,7 @@ const DEFAULT_PHYSICS = { G:1, D0:2, kFrame:1, q:2, kRep:1, muF:0.5, gammaN:0.4,
   kappaS:0.05, Kt:60, cLight:60, bM:1, etaRad:0, pRad:4,
   radiusScale:1.2, softening:2, timeScale:1 };
 // v1.7: kLens は廃止(E8R で屈折率は n=e^{2W/Kt} に統一。旧セーブの kLens は受理して無視)
-const APP_VERSION = "1.15";               // エクスポートの appVersion に記録(package.json と QA で同期検査)
+const APP_VERSION = "1.16";               // エクスポートの appVersion に記録(package.json と QA で同期検査)
 const DT = 0.016, SUBSTEPS = 2;          // dt/substeps はアプリ管理(LLMへは非公開)
 const N_CAP = 600;                        // 粒子総数上限
 const RAY_MASS_MIN = 40;                  // 光線を曲げる最小質量(性能のための近似)
@@ -537,6 +537,21 @@ const BUILTIN_PRESETS = [
     {type:"single", m:2, x:140,y:0, vx:0,vy:0, spin:0, pinned:true},
     {type:"single", m:2, x:240,y:0, vx:0,vy:0, spin:0, pinned:true}
   ],
+  overlays:{rotationCurve:false,tempHistogram:false,field:true} },
+
+{ id:"grcal", name:"弱場GR較正 — GPS・光・シャピロ", emoji:"🛰️", group:"空間と時間",
+  description:"時計と光を1本のψ=W/Ktで決める弱場則(A7′/E7R/E8R/T5)を、現実の観測と突き合わせる較正デモ。Kt=c²/Gの1本で: GPS時計の正味進み +38.5μs/日(重力+45.7・運動−7.2。観測≈+38.6)/太陽縁の光偏向 1.7512″(観測≈1.75″)/シャピロ遅延 ≈281μs(カッシーニ幾何)が定量一致する。※水星近日点の主成分(静的1PN、+42.98″/世紀)は再現しない(Negative claim 5)。画面はそのアナログ: 地上時計(r=60)はτ/t=0.920、周回衛星(r=180)は運動しているのにτ/t=0.971で速く進む — 重力項が運動項に勝つ、実GPSと同じ符号構造。左からの光線ファンは中心星の場で屈折し(シャピロ遅延と同じn_eff>1の機構)、Ktを下げると時計差と湾曲が同時に強まる。",
+  en:{name:"Weak-Field GR Calibration — GPS, Light, Shapiro", description:"A calibration demo pitting the single-ψ weak-field law (A7′/E7R/E8R/T5) against real observations. With the one mapping Kt=c²/G: net GPS clock rate +38.5 μs/day (gravity +45.7, motion −7.2; observed ≈+38.6) / solar-limb deflection 1.7512″ (observed ≈1.75″) / Shapiro delay ≈281 μs (Cassini geometry) — all match quantitatively. Note: Mercury's perihelion main term (static 1PN, +42.98″/century) is NOT reproduced (Negative claim 5). On screen, the analog: the ground clock (r=60) shows τ/t=0.920 while the orbiting satellite (r=180), though moving, ticks faster at τ/t=0.971 — gravity beats motion, the same sign structure as real GPS. The ray fan from the left refracts in the central field (the same n_eff>1 mechanism as the Shapiro delay); lower Kt and clock gaps and bending strengthen together."},
+  camera:{scale:280}, world:{boundary:"none",size:0},
+  physics:{G:1, D0:0, kFrame:0, kRep:0, muF:0, gammaN:0, kappaS:0, etaRad:0,
+    Kt:300, cLight:60, softening:2, timeScale:2},
+  abSuggest:{param:"Kt", value:150}, // 付録O: ψ 統一の対比=Kt を下げると時計差と湾曲が同時に拡大
+  bodies:[ // 付録O O1: 衛星は Plummer 厳密円軌道 v=√(G·M·r²/(r²+ε²)^{3/2})(V13 と同式)
+    {type:"single", m:1500, x:0,y:0, vx:0,vy:0, spin:0, pinned:true},
+    {type:"single", m:2, x:60,y:0, vx:0,vy:0, spin:0, pinned:true},
+    {type:"single", m:2, x:180,y:0, vx:0,vy:2.8865, spin:0, pinned:false}
+  ],
+  rays:{n:9, spread:0.4},
   overlays:{rotationCurve:false,tempHistogram:false,field:true} },
 
 { id:"drag", name:"引きずられる楕円 — 近点の後退", emoji:"💫", group:"空間と時間",

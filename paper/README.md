@@ -17,26 +17,29 @@ pdflatex dfm-paper.tex && pdflatex dfm-paper.tex
 RevTeX 4.2 が必要(TeX Live 標準同梱)。現行クラスオプションは `aps,reprint`
 (ドラフト用)。AJP 投稿時は誌のテンプレート指定に合わせて差し替える。
 
-## 図の再生成(スクリーンショットは補助のみ)
+## 図の再生成(v1.16 で機械生成済み — スクリーンショットは補助のみ)
 
-全図はシミュレーション(`index.html` v1.15 の `HP.sim` / `HP.verify`)から
-スクリプト再生成する。現稿はプレースホルダ枠+キャプションに生成手段を明記済み。
+```sh
+node tools/gen-figures.mjs        # 全6図を figures/ に svg + pdf + json で生成
+FIG=2,5 node tools/gen-figures.mjs  # 個別再生成
+```
 
-| 図 | 生成手段 | パラメータ |
+headless Chromium + HP フック駆動(依存は `npm install` の playwright のみ)。
+各図の `.json` に生成パラメータ・実測値・コミットハッシュを記録し、
+数値ゲート(`figures/figures-gates.json`)が文書値との一致を機械強制する。
+
+| 図 | 生成手段 | 実測ゲート(2026-07-17) |
 |---|---|---|
-| Fig. 1 | preset `mach` + 手動 D₀ スキャン | D₀ ∈ {0.05, 0.5, 2, 8, 32} |
-| Fig. 2 | preset `galaxy` A/B(kFrame=1/0)+ V11 | 中心 m600・disk n140・D₀0.5、外帯 [85,130]、步1000–2000 平均 |
-| Fig. 3 | verify V6(+preset `drag` のトレイル) | a=60, e=0.5, S=±0.05, kF∈{0,1}, D₀=0.05 |
-| Fig. 4 | verify V12 / V13 / V16(+preset `twin`) | V12: Kt=1e6, v/c₀∈{0,0.3,0.6}; V16: v=0.5c₀ |
-| Fig. 5 | preset `lensing`(Kt=150、26本ファン)/ `spinlens` + verify V8(Kt=500) | x₀=−300, \|y₀\|≤255, dl=2.73 |
-| Fig. 6 | preset `gas` / `pressure` + 温度オーバーレイ | 既定値 |
-
-図生成スクリプトは Phase 1 の CI 基盤(`tests/qa.mjs` の JSON artifact)に
-接続して実装する(headless Chromium + HP フック。ロードマップ参照)。
+| Fig. 1 | preset `mach`(リング+プローブ8点)D₀∈{0.05..128}、E3 フレーム読み出し | 解析 w/(w+D₀) と差 0.0%・単調減少 |
+| Fig. 2 | preset `galaxy` + abStart(kFrame,0)、6000步、幅20ビン | 外縁比 kF1/kF0 = 1.082 (>1.04) |
+| Fig. 3 | V6 構成3ラン + preset `drag` 168000步ロゼット | −7.52° / +10.71° / 対照 −1.03° |
+| Fig. 4 | V12/V13/V16 同構成(各1000步) | 最大相対誤差 9.1e-5 (<1e-3) |
+| Fig. 5 | preset `lensing`(26本ファン)+ V8 構成(spin±0.5, Kt=500) | 非対称度 ∓6.77e-2 rad(符号反転) |
+| Fig. 6 | preset `gas` / `pressure`(各16000步) | コア半径 34.5→140.9(×4.09)・温度ギャップ 4.34→0.48 |
 
 ## 投稿前 TODO
 
-- [ ] 図6枚の実生成(上表のとおり機械生成。プレースホルダ枠を差し替え)
+- [x] 図6枚の実生成(v1.16: tools/gen-figures.mjs で機械生成・tex 差し替え済み)
 - [ ] 書誌の全件検証(THEORY_SYNTHESIS §5 の指示。特に Iorio の水星 LT 歳差の
       出典を正しい論文に差し替える — tex 内 `TODO(submission)` 参照)
 - [ ] 著者所属行の確定(tex 内 `TODO(author)`)
