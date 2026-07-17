@@ -1,4 +1,9 @@
-# 論文執筆指示書: Determinacy-Field Mechanics 論文(v1 プレプリント)
+# 【廃止 — HANDOFF_PAPER_V2.md を使用】論文執筆指示書: Determinacy-Field Mechanics 論文(v1 プレプリント)
+
+> **⚠️ 本書は 2026-07-16 に廃止された(第5次レビュー裁定 #4、DERIVATIONS §14)。**
+> 追補の積層により v1.9 以降の仕様(サンプル刷新・k_L 廃止・近点式訂正)を安全に生成
+> できない。論文執筆は自己完結版 **`HANDOFF_PAPER_V2.md`** だけを起点とし、本書を
+> 参照しないこと。本書は改訂史の記録としてのみ残置する。
 
 作成: Claude Fable 5(設計 Tier)/ 2026-07-15
 実行担当: **Claude Sonnet 5**(`claude-sonnet-5`、2026-08-31まで導入価格 $2/$10 per MTok。

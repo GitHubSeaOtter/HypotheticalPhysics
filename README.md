@@ -34,7 +34,9 @@ iPhoneのブラウザで観察できるシミュレータです。
   Sonnet 5 フォールバック)。v1.10 からプロバイダを選択可能: **Claude / OpenAI互換 API
   (URL変更可、ローカルLLMにも接続可) / Google Gemini**。モデルIDは自由入力(候補は datalist で提示)。
   APIキーはプロバイダ別に管理し、既定では**端末に保存せずメモリのみ**(保存はチェックで明示オプトイン)。
-  送信先は選択したプロバイダのAPIのみです。
+  送信先は選択したプロバイダのAPIのみです。v1.11 で生成の表現力を拡張:
+  **熱浴(ヒーター/冷却板)・放射冷却・対流・ブラックホール(光子捕捉)**が要望文から
+  生成できます(例:「ブラックホールが見たい」「床で温めて天井で冷やす対流実験」)。
 - 1本指ドラッグで移動 / 2本指ピンチで拡大縮小 / 粒子タップで固有時計(τ/t)表示
 
 ## 仮定物理法則(要約)
@@ -75,12 +77,18 @@ iPhoneのブラウザで観察できるシミュレータです。
 |---|---|
 | [docs/THEORY_SYNTHESIS.md](docs/THEORY_SYNTHESIS.md) | 論文として主張・防御できる理論構造(3層構造・中核主張 C1〜C8・Negative claims・限界 L1〜L17) |
 | [docs/DERIVATIONS.md](docs/DERIVATIONS.md) | 解析的導出と外部AIレビュー全5次の裁定記録(数学的正本) |
-| [docs/HANDOFF_PAPER.md](docs/HANDOFF_PAPER.md) | 論文ドラフト執筆のハンドオフ(※v1.9 とのずれあり — 自己完結版 V2 の作成が最優先課題。DERIVATIONS §14 裁定 #4) |
+| [docs/HANDOFF_PAPER_V2.md](docs/HANDOFF_PAPER_V2.md) | 論文ドラフト執筆の実行指示書(自己完結版。著者・投稿先・実験選定・禁止事項を確定) |
 | [docs/EXPLAINER_HIGHSCHOOL.md](docs/EXPLAINER_HIGHSCHOOL.md) | 高校生向け解説 |
+
+## ライセンス・引用
+
+- コード(index.html ほか): [MIT License](LICENSE) — © 2026 Tetsuya Imamura
+- 理論文書(docs/): [CC BY 4.0](docs/LICENSE)(表示: Tetsuya Imamura)
+- 引用方法: [CITATION.cff](CITATION.cff)(GitHub の「Cite this repository」からも取得可)
 
 ## AI追加機能のコスト
 
-プリセット生成1回 ≈ $0.013(約2円)。詳細は MODEL_ROUTING.md のコスト見積りを参照。
+プリセット生成1回 ≈ $0.013〜0.017(約2〜3円、Claude Haiku 4.5)。詳細は MODEL_ROUTING.md のコスト見積りを参照。
 
 ## 技術メモ
 
@@ -148,3 +156,11 @@ iPhoneのブラウザで観察できるシミュレータです。
   1塊に凍結 — 軽量粒子化で解消。maxFrac 0.99→0.26)、**🪐土星の環を安定化**(中心星固定+
   環を外側へ。環残存 55%→99.7%・ドリフト 49→0)。verify 11項目・13プリセット・few-shot・
   互換の全回帰 PASS(付録J=HANDOFF_IMPLEMENTATION、MODEL_ROUTING v1.10)。
+- v1.11(2026-07-16): **Phase 0 完了** — LICENSE(コード MIT+docs CC BY 4.0、著者
+  Tetsuya Imamura)・CITATION.cff・**HANDOFF_PAPER_V2**(自己完結の論文執筆指示書。旧版は
+  廃止注記)。方針は教育用トイモデルで確定(DERIVATIONS §14.3)。アプリ: **♨️対流を天井冷却に
+  改良**(側壁冷却は粒子の23%が膠着 — 疎な天井冷却板で4%へ。機械比較5構成)、**AI生成の
+  表現力拡張**(熱浴・放射冷却・対流・ブラックホール光子捕捉のレシピと few-shot 5例化。
+  BH例は5/5光線の捕捉を機械検証。捕捉条件「Kt40〜60・スピン0〜0.5」は掃引で確定 —
+  スピン過大は引きずり随伴で光が逃げる)。温度グラフの pinned 除外込みで全回帰 PASS
+  (付録K=HANDOFF_IMPLEMENTATION、MODEL_ROUTING v1.11)。
