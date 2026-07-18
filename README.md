@@ -108,11 +108,11 @@ iPhoneのブラウザで観察できるシミュレータです。
 
 ## 開発・QA(Phase 1 再現性基盤)
 
-新規cloneから1コマンドで全機械QA(76項目)を実行できます:
+新規cloneから1コマンドで全機械QA(85項目)を実行できます:
 
 ```bash
 npm install && npx playwright install chromium   # 初回のみ
-npm test          # 全76項目(約5分)。結果は tests/out/qa-results.json
+npm test          # 全85項目(約5分)。結果は tests/out/qa-results.json
 npm run test:fast # 長時間挙動テストを省略した高速版
 ```
 
@@ -245,3 +245,11 @@ GitHub Actions([.github/workflows/ci.yml](.github/workflows/ci.yml))が push/PR 
   🔥gasの統制実験化、**bulkVx/Vy**(ring/disk/boxの母集団並進速度 — 🌠mergerの
   「核だけ動き円盤置き去り」を修正)、内蔵プリセットの physics 18キー完全明示
   (QAで機械強制)、セーブタブのバックアップを保存一覧より上に配置。QA 76/76 PASS。
+- v1.19(2026-07-18): **UI改善12件(原仮定者の指示)** — A/B比較の全面刷新
+  (開始で「今の状態」をAとしそのコピーをBに作成/終了でAを継続しBを破棄/
+  パラメータ選択・B側の値・おすすめA/Bを廃止し、最後に調整したパラメータの値を両画面に表示)、
+  表示に**線の軌跡トグル**追加+A/B比較でも線の軌跡を描画、実効速度=**時間倍率×プルダウン倍率**、
+  パラメータ直値入力の値をそのまま表示、一様重力の表記統一(g_x/g_y)、
+  セーブ名の初期値=プリセット名+サフィックス、インポートの内容重複判定
+  (パラメータ同一はスキップ・名前被りはサフィックス)、保存一覧・生成済みプリセットに
+  **JSONコピー**。QA 85/85 PASS。MODEL_ROUTING v1.19 追補。

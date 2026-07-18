@@ -142,13 +142,8 @@
     <div class="tabPage" id="page-params">
       <div class="group" id="abGroup">
         <h3 id="abHead">A/B比較</h3>
-        <div class="prow"><label id="abParamLabel">パラメータ</label>
-          <select id="abParam" style="flex:1"></select></div>
-        <div class="prow"><label id="abBLabel">B側の値</label>
-          <input type="text" id="abVal" class="valIn" inputmode="decimal" autocomplete="off" style="flex:1;width:auto;"></div>
         <div class="rowBtns"><button class="btn primary" id="btnAB">A/B比較を開始</button></div>
-        <div class="rowBtns" id="abSuggestRow" style="display:none"><button class="btn" id="btnAbSuggest"></button></div>
-        <p class="note" id="abNote">同一の初期配置で宇宙を2つ複製し、選んだ1つのパラメータだけを変えて上下に並べて同時に走らせます(A=上・現在の値、B=下)。実行中のパラメータ編集はA側にのみ効きます。プリセットを切り替えると解除されます。</p>
+        <p class="note" id="abNote">今の状態をAとして、そのコピーのBを作り、上下に並べて同時に走らせます(A=上、B=下)。実行中のパラメータ編集はA側にのみ効き、最後に調整したパラメータの値が両画面に表示されます。「終了」でAの状態を継続しBを破棄します。プリセットを切り替えると解除されます。</p>
       </div>
       <div id="paramRows"></div>
       <div class="rowBtns">
@@ -233,6 +228,15 @@
  * 追加し🌠mergerの「核だけ動き円盤置き去り」を修正 ⑦内蔵プリセットのphysicsを
  * 18キー完全明示(既定値継承の暗黙依存を排除。QAで機械強制) ⑧セーブタブの
  * バックアップを保存一覧より上に配置
+ * v1.19 (2026-07-18): UI改善(原仮定者の指示12件)—
+ * ①一様重力の表記統一(g_x/g_y) ②パラメータ直値入力の値をそのまま表示
+ * ③表示に「線の軌跡」トグル追加+A/B比較でも線の軌跡を描画 ④実効速度=
+ * 時間倍率×プルダウン倍率(プルダウンがパラメータを書き換える方式を廃止)
+ * ⑤A/B比較の全面刷新 — 開始で「今の状態」をAとしそのコピーをBに作成、
+ * 終了でAを継続しBを破棄。パラメータ選択・B側の値・おすすめA/Bは廃止し、
+ * 最後に調整したパラメータの値を両画面に表示 ⑥セーブ名の初期値=プリセット名+
+ * サフィックス ⑦インポートの内容重複判定(パラメータ同一はスキップ・名前被りは
+ * サフィックス) ⑧保存一覧・生成済みプリセットにJSONコピー
  * ===================================================================== */
 
 // ===== ユーティリティ =====
@@ -253,15 +257,15 @@ ja: {
   reset:"⏮ 初めから", run:"▶ 実行", resume:"▶ 再開", pause:"⏸ 停止",
   tabHelp:"説明", tabParams:"パラメータ", tabSaves:"セーブ", tabAI:"AI追加",
   paramDefault:"プリセット既定値に戻す",
-  abHead:"A/B比較", abParamLabel:"パラメータ", abBLabel:"B側の値",
+  abHead:"A/B比較",
   btnAbStart:"A/B比較を開始", btnAbStop:"A/B比較を終了",
-  abNote:"同一の初期配置で宇宙を2つ複製し、選んだ1つのパラメータだけを変えて上下に並べて同時に走らせます(A=上・現在の値、B=下)。実行中のパラメータ編集はA側にのみ効きます。プリセットを切り替えると解除されます。",
-  abStarted:(k)=>"A/B比較を開始: "+k+"(▶実行で両方が同時に走ります)",
+  abNote:"今の状態をAとして、そのコピーのBを作り、上下に並べて同時に走らせます(A=上、B=下)。実行中のパラメータ編集はA側にのみ効き、最後に調整したパラメータの値が両画面に表示されます。「終了」でAの状態を継続しBを破棄します。プリセットを切り替えると解除されます。",
+  abStarted:"A/B比較を開始: 今の状態をBに複製しました(▶実行で両方が同時に走ります)",
   abStopped:"A/B比較を終了しました",
   abResetDone:"A/B両方を初期配置に戻しました",
   paramNote:"※ 物理パラメータは実行中いつでも反映されます。粒子の初期配置・個数はプリセット選択または「⏮ 初めから」で反映されます。",
   grpLaws:"仮定物理法則", grpSim:"シミュレーション", grpDisplay:"表示",
-  tgTrails:"軌跡を残す", tgField:"決定力マップ", tgCurve:"回転曲線グラフ",
+  tgTrails:"軌跡を残す", tgTrailLine:"線の軌跡", tgField:"決定力マップ", tgCurve:"回転曲線グラフ",
   tgTemp:"温度グラフ", tgSpectrum:"スペクトル", tgMonitor:"保存量モニタ(P・L・帳簿)",
   tgRays:"光線", uiScaleLabel:"文字サイズ",
   uiScaleOpts:[["1","標準"],["1.15","大"],["1.3","特大"]],
@@ -273,16 +277,17 @@ ja: {
   btnSave:"保存", btnExport:"エクスポート(コピー)", btnImport:"インポート",
   ioPh:"エクスポートJSONの表示 / 貼り付けてインポート",
   noSaves:"保存はまだありません。", untitled:"無題", origin:"元: ",
-  btnLoad:"読込", btnDelete:"削除", btnOpen:"開く",
+  btnLoad:"読込", btnDelete:"削除", btnOpen:"開く", btnCopy:"コピー",
   savedAs:(n)=>"保存しました:"+n, loadedAs:(n)=>"読み込みました:"+n,
   saveFailed:"保存できませんでした(localStorage容量不足の可能性)",
   copied:"クリップボードにコピーしました", imported:"インポートしました",
+  copyFallback:"クリップボードに書けなかったため、セーブタブのテキスト欄に表示しました",
   importFailed:"読み込めませんでした(JSONが不正です)",
-  importReport:(a,s,b)=>"インポート: 追加"+a+"件"+(s?" / ID重複をリネーム"+s+"件":"")+(b?" / 不正"+b+"件":""),
+  importReport:(a,s,r,b)=>"インポート: 追加"+a+"件"+(s?" / 同一パラメータのためスキップ"+s+"件":"")+(r?" / 名前重複にサフィックス"+r+"件":"")+(b?" / 不正"+b+"件":""),
   btnExportFile:"ファイルに保存", fileSaved:"ファイルとして保存しました", fileShared:"共有しました",
   btnImportFile:"ファイルから読込", fileLoaded:"ファイルを読み込みました",
   unsavedWarn:"※編集中のパラメータは「保存」するまでバックアップに含まれません",
-  ioNote:"インポートは「単独プリセット / プリセット配列 / {customPresets:[…]} / バックアップ全体」のどの形式でも自動判別します。既存と同じIDはIDと名前にサフィックスを付けて追加され、インポートしたプリセットは保存一覧にも登録されます。",
+  ioNote:"インポートは「単独プリセット / プリセット配列 / {customPresets:[…]} / バックアップ全体」のどの形式でも自動判別します。パラメータが全く同じデータは取り込まず、名前が同じでパラメータが異なるデータは名前にサフィックスを付けて追加します。インポートしたプリセットは保存一覧にも登録されます。",
   presetMissing:"元プリセットが見つからないため既定プリセットに適用しました",
   resetDone:"初期配置に戻しました(パラメータは保持)", defaultsDone:"プリセットの既定値に戻しました",
   diverged:"数値が発散しました。パラメータを見直すか「⏮ 初めから」を押してください。",
@@ -319,7 +324,6 @@ ja: {
   extRail:"規定運動(レール駆動)— 外部が決めた軌道で動き、系に仕事をする。",
   extBath:"スピン浴(熱浴)— スピン固定の粒子が周囲を加熱/冷却する(エネルギーの外部供給・吸収)。",
   extGrav:"一様重力場(gravityX/Y)— 画面全体に働く外部の力場。運動量は場との交換として帳簿に記録される。",
-  abSuggestBtn:(k,v)=>"おすすめA/B: "+k+" = "+v,
   groups:{}, params:{},
 },
 en: {
@@ -327,15 +331,15 @@ en: {
   reset:"⏮ Restart", run:"▶ Run", resume:"▶ Resume", pause:"⏸ Pause",
   tabHelp:"Guide", tabParams:"Parameters", tabSaves:"Saves", tabAI:"AI Create",
   paramDefault:"Restore preset defaults",
-  abHead:"A/B Compare", abParamLabel:"Parameter", abBLabel:"Value for B",
+  abHead:"A/B Compare",
   btnAbStart:"Start A/B compare", btnAbStop:"Stop A/B compare",
-  abNote:"Duplicates the universe with identical initial conditions, changes exactly one parameter, and runs both stacked vertically (A = top, current value; B = bottom). Parameter edits while running affect side A only. Switching presets exits the mode.",
-  abStarted:(k)=>"A/B compare started: "+k+" (press ▶ Run to advance both)",
+  abNote:"Takes the current state as A, creates a copy as B, and runs both stacked vertically (A = top, B = bottom). Parameter edits while running affect side A only, and the value of the last-adjusted parameter is shown on both views. Stopping keeps A and discards B. Switching presets exits the mode.",
+  abStarted:"A/B compare started: current state copied to B (press ▶ Run to advance both)",
   abStopped:"A/B compare stopped",
   abResetDone:"Both A and B reset to initial layout",
   paramNote:"※ Physics parameters apply instantly, even while running. Initial particle layout/count applies on preset selection or ⏮ Restart.",
   grpLaws:"Hypothetical physical laws", grpSim:"Simulation", grpDisplay:"Display",
-  tgTrails:"Motion trails", tgField:"Determinacy map", tgCurve:"Rotation-curve graph",
+  tgTrails:"Motion trails", tgTrailLine:"Line trails", tgField:"Determinacy map", tgCurve:"Rotation-curve graph",
   tgTemp:"Temperature graph", tgSpectrum:"Spectrum", tgMonitor:"Conservation monitor (P, L, ledger)",
   tgRays:"Light rays", uiScaleLabel:"Text size",
   uiScaleOpts:[["1","Standard"],["1.15","Large"],["1.3","X-Large"]],
@@ -347,16 +351,17 @@ en: {
   btnSave:"Save", btnExport:"Export (copy)", btnImport:"Import",
   ioPh:"Exported JSON appears here / paste to import",
   noSaves:"No saves yet.", untitled:"Untitled", origin:"from: ",
-  btnLoad:"Load", btnDelete:"Delete", btnOpen:"Open",
+  btnLoad:"Load", btnDelete:"Delete", btnOpen:"Open", btnCopy:"Copy",
   savedAs:(n)=>"Saved: "+n, loadedAs:(n)=>"Loaded: "+n,
   saveFailed:"Could not save (localStorage may be full)",
   copied:"Copied to clipboard", imported:"Imported",
+  copyFallback:"Clipboard unavailable — shown in the Saves-tab text box instead",
   importFailed:"Could not import (invalid JSON)",
-  importReport:(a,s,b)=>"Import: "+a+" added"+(s?" / "+s+" renamed (duplicate ID)":"")+(b?" / "+b+" invalid":""),
+  importReport:(a,s,r,b)=>"Import: "+a+" added"+(s?" / "+s+" skipped (identical parameters)":"")+(r?" / "+r+" renamed (duplicate name)":"")+(b?" / "+b+" invalid":""),
   btnExportFile:"Save as file", fileSaved:"Saved as a file", fileShared:"Shared",
   btnImportFile:"Load from file", fileLoaded:"File loaded",
   unsavedWarn:"Note: edited parameters are not included in backups until you press Save",
-  ioNote:"Import auto-detects any of: a single preset / an array of presets / {customPresets:[…]} / a full backup. Duplicate IDs are added with a suffix on the ID and name, and imported presets are also registered in the saved list.",
+  ioNote:"Import auto-detects any of: a single preset / an array of presets / {customPresets:[…]} / a full backup. Data with identical parameters is skipped; data whose name collides but whose parameters differ is added with a name suffix. Imported presets are also registered in the saved list.",
   presetMissing:"Original preset not found — applied to the default preset",
   resetDone:"Reset to initial layout (parameters kept)", defaultsDone:"Restored preset defaults",
   diverged:"Simulation diverged. Adjust parameters or press ⏮ Restart.",
@@ -392,13 +397,12 @@ en: {
   extRail:"Prescribed motion (rail-driven) — follows an external schedule and does work on the system.",
   extBath:"Spin bath (heat bath) — fixed-spin bodies heat/cool their surroundings (external energy source/sink).",
   extGrav:"Uniform gravity field (gravityX/Y) — an external force field acting across the scene. Momentum exchange with the field is ledgered.",
-  abSuggestBtn:(k,v)=>"Suggested A/B: "+k+" = "+v,
   groups:{"空間と時間":"Space & Time","光":"Light","熱の実験室":"Heat Lab","天体の物語":"Celestial Stories","AI生成":"AI-generated","内蔵":"Built-in","保存一覧":"Saved items"},
   params:{G:"Gravity G", D0:"Background determinacy D₀", kFrame:"Frame dragging kFrame",
     q:"Drag falloff q", kRep:"Spin repulsion kRep", muF:"Friction→spin muF",
     gammaN:"Collision damping γn", kappaS:"Spin diffusion κs", Kt:"Spacetime Kt (time & light)",
     cLight:"Light speed c₀", bM:"Wien constant b_m", etaRad:"Radiative cooling η_rad",
-    pRad:"Radiation exponent p", gravityX:"Uniform gravity gₓ", gravityY:"Uniform gravity g_y",
+    pRad:"Radiation exponent p", gravityX:"Uniform gravity g_x", gravityY:"Uniform gravity g_y",
     radiusScale:"Particle radius scale", softening:"Softening ε",
     timeScale:"Time multiplier"},
 },
@@ -510,7 +514,7 @@ const DEFAULT_PHYSICS = { G:1, D0:2, kFrame:1, q:2, kRep:1, muF:0.5, gammaN:0.4,
   gravityX:0, gravityY:0,   // v1.17: 一様重力場(外部場。+yは画面下向き)
   radiusScale:1.2, softening:2, timeScale:1 };
 // v1.7: kLens は廃止(E8R で屈折率は n=e^{2W/Kt} に統一。旧セーブの kLens は受理して無視)
-const APP_VERSION = "1.18";               // エクスポートの appVersion に記録(package.json と QA で同期検査)
+const APP_VERSION = "1.19";               // エクスポートの appVersion に記録(package.json と QA で同期検査)
 const DT = 0.016, SUBSTEPS = 2;          // dt/substeps はアプリ管理(LLMへは非公開)
 const N_CAP = 600;                        // 粒子総数上限
 const RAY_MASS_MIN = 40;                  // 光線を曲げる最小質量(性能のための近似)
@@ -533,7 +537,7 @@ const PARAM_DEFS = [
   {key:"bM",    label:"ウィーン定数 b_m",    mode:"log", lo:0.01, hi:100, group:"法則"},
   {key:"etaRad",label:"放射冷却 η_rad",      mode:"log", lo:0.000001, hi:1, group:"法則"},
   {key:"pRad",  label:"放射指数 p",          mode:"lin", lo:1, hi:6, step:0.5, group:"法則"},
-  {key:"gravityX",label:"一様重力 gₓ",       mode:"lin", lo:-5, hi:5, step:0.005, group:"法則"},
+  {key:"gravityX",label:"一様重力 g_x",      mode:"lin", lo:-5, hi:5, step:0.005, group:"法則"},
   {key:"gravityY",label:"一様重力 g_y",      mode:"lin", lo:-5, hi:5, step:0.005, group:"法則"},
   {key:"radiusScale",label:"粒子半径スケール", mode:"lin", lo:0.2, hi:4, step:0.02, group:"シミュレーション"},
   {key:"softening",  label:"ソフトニング ε",  mode:"lin", lo:0.5, hi:10, step:0.1, group:"シミュレーション"},
@@ -570,7 +574,6 @@ const BUILTIN_PRESETS = [
   camera:{scale:220}, world:{boundary:"none",size:0},
   physics:{G:0.02, D0:0.5, kFrame:1, q:2, kRep:1, muF:0.5, gammaN:0.4, kappaS:0.05, Kt:60,
     cLight:60, bM:1, etaRad:0, pRad:4, gravityX:0, gravityY:0, radiusScale:1.2, softening:2, timeScale:2},
-  abSuggest:{param:"D0", value:50}, // v1.15: 対比=D₀を上げると引きずりが弱まる(説明文の推奨を1タップ化)
   bodies:[
     {type:"ring", n:14, cx:0,cy:0, rIn:150,rOut:150, mMin:80,mMax:80,
      spinMin:0.5,spinMax:0.5, vMode:"omega", aroundMass:0, omega:0.012, vNoise:0, direction:1, pinned:true},
@@ -600,7 +603,6 @@ const BUILTIN_PRESETS = [
   camera:{scale:280}, world:{boundary:"none",size:0},
   physics:{G:0, D0:0, kFrame:0, q:2, kRep:0, muF:0, gammaN:0, kappaS:0, Kt:300,
     cLight:60, bM:1, etaRad:0, pRad:4, gravityX:0, gravityY:0, radiusScale:1.2, softening:2, timeScale:1},
-  abSuggest:{param:"Kt", value:150}, // v1.15: 対比=Kt 300→150 で3時計の差が同時に拡大(説明文の推奨)
   bodies:[ // v1.12(付録L): 第6次提案 P0-1 採用。τ/t 解析一致を機械検証済み
     {type:"single", m:1500, x:0,y:0, vx:0,vy:0, spin:0, pinned:true},
     {type:"single", m:2, x:70,y:0,  vx:0,vy:0, spin:0, pinned:true},
@@ -615,7 +617,6 @@ const BUILTIN_PRESETS = [
   camera:{scale:280}, world:{boundary:"none",size:0},
   physics:{G:1, D0:0, kFrame:0, q:2, kRep:0, muF:0, gammaN:0, kappaS:0, Kt:300,
     cLight:60, bM:1, etaRad:0, pRad:4, gravityX:0, gravityY:0, radiusScale:1.2, softening:2, timeScale:2},
-  abSuggest:{param:"Kt", value:150}, // 付録O: ψ 統一の対比=Kt を下げると時計差と湾曲が同時に拡大
   bodies:[ // 付録O O1: 衛星は Plummer 厳密円軌道 v=√(G·M·r²/(r²+ε²)^{3/2})(V13 と同式)
     {type:"single", m:1500, x:0,y:0, vx:0,vy:0, spin:0, pinned:true},
     {type:"single", m:2, x:60,y:0, vx:0,vy:0, spin:0, pinned:true},
@@ -642,7 +643,6 @@ const BUILTIN_PRESETS = [
   camera:{scale:300}, world:{boundary:"none",size:0},
   physics:{G:1, D0:1, kFrame:1, q:2, kRep:1.0, muF:0.02, gammaN:0.05, kappaS:0.05, Kt:60,
     cLight:60, bM:1, etaRad:0, pRad:4, gravityX:0, gravityY:0, radiusScale:1.2, softening:4, timeScale:4},
-  abSuggest:{param:"kFrame", value:0}, // v1.15: 対比=kFrame0では平坦化が起きない(T4。QAでも定量検証)
   bodies:[
     {type:"single", m:600, x:0,y:0, vx:0,vy:0, spin:0.05, pinned:false},
     {type:"disk", n:380, cx:0,cy:0, radius:260, mMin:0.5,mMax:1.2,
@@ -656,7 +656,6 @@ const BUILTIN_PRESETS = [
   camera:{scale:220}, world:{boundary:"box",size:190},
   physics:{G:0, D0:2, kFrame:0, q:2, kRep:0, muF:0, gammaN:0, kappaS:0, Kt:60,
     cLight:60, bM:1, etaRad:0, pRad:4, gravityX:0, gravityY:0.08, radiusScale:1.2, softening:2, timeScale:3},
-  abSuggest:{param:"gravityY", value:0.16}, // 対比=重力を倍にすると落下が速まり放物線が狭まる
   bodies:[ // v1.18: Gemini/Grok 第8次提案の合議採用(自由落下×2質量+水平投射+斜方投射)
     {type:"single", m:2, x:-150,y:-140, vx:0,vy:0, spin:0, pinned:false},
     {type:"single", m:20, x:-110,y:-140, vx:0,vy:0, spin:0, pinned:false},
@@ -723,7 +722,6 @@ const BUILTIN_PRESETS = [
   camera:{scale:240}, world:{boundary:"circle",size:210},
   physics:{G:0, D0:50, kFrame:0, q:2, kRep:2, muF:0.2, gammaN:0.3, kappaS:0.05, Kt:60,
     cLight:60, bM:1, etaRad:0, pRad:4, gravityX:0, gravityY:0, radiusScale:1.2, softening:2, timeScale:2},
-  abSuggest:{param:"kRep", value:0}, // v1.15: 対比=kRep0では圧力が消え殻が押し広がらない(A10)
   bodies:[
     {type:"disk", n:90, cx:0,cy:0, radius:50, mMin:1,mMax:1,
      spinMin:6,spinMax:7, vMode:"none", aroundMass:0, vScale:0, direction:1},
@@ -789,7 +787,6 @@ const BUILTIN_PRESETS = [
   camera:{scale:260}, world:{boundary:"box",size:240},
   physics:{G:0.7, D0:30, kFrame:0.3, q:2, kRep:0.8, muF:0.6, gammaN:0.85, kappaS:0.02, Kt:60,
     cLight:60, bM:1, etaRad:0, pRad:4, gravityX:0, gravityY:0.04, radiusScale:1.6, softening:2, timeScale:2},
-  abSuggest:{param:"gravityY", value:0}, // v1.18: 対比=重力0では液体が底に溜まらない
   bodies:[ // v1.5(付録F F4a): 3群は spin 以外すべて同一(統制実験)。v1.18: 少し上から落とす
     {type:"disk", n:65, cx:-160,cy:-50, radius:38, mMin:0.6,mMax:0.6,
      spinMin:0,spinMax:0, vMode:"none", aroundMass:0, vScale:0, direction:1},
@@ -810,7 +807,6 @@ const BUILTIN_PRESETS = [
   camera:{scale:240}, world:{boundary:"box",size:190},
   physics:{G:0, D0:2, kFrame:0, q:2, kRep:2, muF:0.2, gammaN:0.1, kappaS:1.2, Kt:60,
     cLight:60, bM:1, etaRad:0, pRad:2, gravityX:0, gravityY:0.03, radiusScale:4, softening:4, timeScale:2},
-  abSuggest:{param:"gravityY", value:0}, // v1.18: 対比=重力0では浮力が定義できず循環が止まる
   bodies:[ // v1.17: ヒーター11点(床左〜中央)+冷却板5点(天井右・疎)+軽量ガス260。
            // spin12/κs1.2/低散逸(muF0.2,γn0.1)は48000步の循環持続を機械掃引で確認した構成
     {type:"single", m:1, x:-170,y:186, vx:0,vy:0, spin:12, pinned:true},
@@ -840,7 +836,6 @@ const BUILTIN_PRESETS = [
   camera:{scale:200}, world:{boundary:"box",size:160},
   physics:{G:0, D0:2, kFrame:0, q:2, kRep:3, muF:0, gammaN:0.1, kappaS:0, Kt:60,
     cLight:60, bM:1, etaRad:0, pRad:4, gravityX:0, gravityY:0.05, radiusScale:2.5, softening:2, timeScale:2},
-  abSuggest:{param:"gravityY", value:0}, // 対比=重力0では沈降も浮力も生まれない
   bodies:[ // v1.18: Gemini 第8次提案を機械掃引で調整(スピン固定+radiusScale2.5 — 分離52〜72が持続)
     {type:"box", n:200, cx:0,cy:0, w:280,h:280, mMin:0.2,mMax:0.2, spinMin:4,spinMax:5, vScale:0.5},
     {type:"box", n:80, cx:0,cy:0, w:280,h:280, mMin:3,mMax:3, spinMin:0,spinMax:0, vScale:0.1}
@@ -854,7 +849,6 @@ const BUILTIN_PRESETS = [
   camera:{scale:300}, world:{boundary:"none",size:0},
   physics:{G:1, D0:2, kFrame:1, q:2, kRep:1.2, muF:0.6, gammaN:0.5, kappaS:0.08, Kt:60,
     cLight:60, bM:1, etaRad:0, pRad:4, gravityX:0, gravityY:0, radiusScale:1.2, softening:2, timeScale:3},
-  abSuggest:{param:"muF", value:0}, // v1.17: 対比=muF0で円形化・整列(T3)が止まる
   bodies:[ // v1.17: AI生成「土星の環」参考 — 間隙を挟む3環帯。中心は固定(外部拘束)
     {type:"single", m:1500, x:0,y:0, vx:0,vy:0, spin:0.05, pinned:true},
     {type:"ring", n:170, cx:0,cy:0, rIn:135,rOut:158, mMin:0.08,mMax:0.15,
@@ -899,7 +893,6 @@ const BUILTIN_PRESETS = [
   camera:{scale:190}, world:{boundary:"none",size:0},
   physics:{G:1, D0:5, kFrame:0, q:2, kRep:0, muF:1, gammaN:0.6, kappaS:0.02, Kt:10000,
     cLight:60, bM:1, etaRad:1e-5, pRad:2, gravityX:0, gravityY:0, radiusScale:0.8, softening:2, timeScale:2},
-  abSuggest:{param:"muF", value:0}, // v1.15: 対比=muF0で加熱が完全に止まる(0.76→0.00は機械検証済み)
   bodies:[ // v1.12(付録L): 第6次提案 P0-3 採用。muF=1/0 の加熱対照を機械検証済み
     {type:"single", m:800, x:0,y:0, vx:0,vy:0, spin:0, pinned:true},
     {type:"ring", n:140, cx:0,cy:0, rIn:80,rOut:145, mMin:0.12,mMax:0.18,
@@ -915,7 +908,6 @@ const BUILTIN_PRESETS = [
   camera:{scale:160}, world:{boundary:"none",size:0},
   physics:{G:0.9, D0:4.5, kFrame:0.55, q:1.8, kRep:0.8, muF:0.45, gammaN:0.55, kappaS:0.12, Kt:90,
     cLight:70, bM:1, etaRad:0.0008, pRad:4, gravityX:0, gravityY:0, radiusScale:1.2, softening:3.5, timeScale:1.8},
-  abSuggest:{param:"kFrame", value:0.3}, // v1.15: 対比=kFrame 0.3〜0.9 で合体動力学が変わる(説明文の推奨帯の下端)
   bodies:[ // v1.13(付録M): 第6次提案(Grok #1)を内蔵化。v1.18: 円盤に bulkVx/Vy を付与し
            // 核と円盤が一体で並進するよう修正(旧: 核だけが動き円盤が置き去りになっていた)
     {type:"single", m:920, x:-280,y:20, vx:1.35,vy:0.25, spin:0.09, pinned:false},
@@ -935,7 +927,6 @@ const BUILTIN_PRESETS = [
   camera:{scale:280}, world:{boundary:"none",size:0},
   physics:{G:1.4, D0:1.8, kFrame:0.35, q:2, kRep:1.2, muF:0.65, gammaN:0.45, kappaS:0.09, Kt:70,
     cLight:60, bM:1, etaRad:0.004, pRad:2.8, gravityX:0, gravityY:0, radiusScale:1.2, softening:5, timeScale:2.2},
-  abSuggest:{param:"etaRad", value:0}, // v1.15: 対比=冷却なしでは収縮が鈍る(説明文の推奨を1タップ化)
   bodies:[ // v1.13(付録M): 第6次提案(Grok #3)を内蔵化。v1.18: Gemini 第8次提案採用 —
            // vMode rigid の微小回転 + random 相当の乱れは vNoise でなく速度合成で付与できないため
            // rigid(ω=0.004)を基本にし、乱れは disk 生成の±0.02 ノイズに任せる(機械検証済み)
@@ -1696,6 +1687,15 @@ function drawBG(){
 
 let trailsOn=false;
 let trailBuf=[];   // overlays.trail 用の蓄積ポリライン(v1.9。残像トグルとは別方式 — 長周期の軌道形状を保持する)
+let trailBufB=[];  // v1.19: A/B比較のB側の線の軌跡
+// 線の軌跡の記録(自由粒子の経路を最大3000点=約100秒・数周分保持)
+function recTrail(S,buf){
+  for(let i=0;i<S.n;i++){ if(S.pinned[i]) continue;
+    const b=buf[i]||(buf[i]=[]);
+    b.push(S.x[i],S.y[i]);
+    if(b.length>6000) b.splice(0,2);
+  }
+}
 function render(){
   ctx.setTransform(dpr,0,0,dpr,0,0);
   if(trailsOn){ ctx.fillStyle="rgba(5,7,15,0.18)"; ctx.fillRect(0,0,cw,ch); }
@@ -1712,15 +1712,8 @@ function render(){
     ctx.setLineDash([]);
   }
   drawRays();
-  // 軌道トレイルの記録(overlays.trail: 自由粒子の経路を最大3000点=約100秒・数周分保持。
-  // 💫近点後退の楕円形状用。描画は粒子の後=グローの上に重ねる)
-  if(sim.overlays.trail && running && (frameCount%2)===0){
-    for(let i=0;i<sim.n;i++){ if(sim.pinned[i]) continue;
-      const b=trailBuf[i]||(trailBuf[i]=[]);
-      b.push(sim.x[i],sim.y[i]);
-      if(b.length>6000) b.splice(0,2);
-    }
-  }
+  // 軌道トレイルの記録(overlays.trail: 💫近点後退の楕円形状用。描画は粒子の後=グローの上に重ねる)
+  if(sim.overlays.trail && running && (frameCount%2)===0) recTrail(sim,trailBuf);
   // 熱=T=Is² の正規化(A9 v1.1。90パーセンタイル+EMA: 単一の大質量天体で飽和させない)
   if(sim.n>0){
     if(!tSort||tSort.length!==sim.n) tSort=new Float32Array(sim.n);
@@ -1783,8 +1776,8 @@ function render(){
   if(sim.overlays.spectrum) drawSpectrum();
 }
 
-// ===== A/B分割描画(v1.13): 粒子・境界・光線・ラベルの比較ビュー(オーバーレイ類は非表示)=====
-function drawWorldInto(S, y0, hgt, label){
+// ===== A/B分割描画(v1.13): 粒子・境界・光線・線の軌跡・ラベルの比較ビュー(オーバーレイ類は非表示)=====
+function drawWorldInto(S, y0, hgt, label, tbuf){
   ctx.save(); ctx.beginPath(); ctx.rect(0,y0,cw,hgt); ctx.clip();
   const z=Math.min(cw,hgt)/2/camScale;
   const sx=(wx)=>cw/2+(wx-camX)*z, sy=(wy)=>y0+hgt/2+(wy-camY)*z;
@@ -1837,6 +1830,15 @@ function drawWorldInto(S, y0, hgt, label){
     }
     if(S.pinned[i]){ ctx.strokeStyle="rgba(255,255,255,0.75)"; ctx.beginPath(); ctx.arc(px,py,rr+2,0,7); ctx.stroke(); }
   }
+  // v1.19: 線の軌跡(A/B比較でも表示)
+  if(S.overlays.trail && tbuf){
+    ctx.strokeStyle="rgba(150,200,255,0.55)"; ctx.lineWidth=1;
+    for(let i=0;i<S.n;i++){ const b=tbuf[i]; if(!b||b.length<4) continue;
+      ctx.beginPath(); ctx.moveTo(sx(b[0]),sy(b[1]));
+      for(let k=2;k<b.length;k+=2) ctx.lineTo(sx(b[k]),sy(b[k+1]));
+      ctx.stroke();
+    }
+  }
   ctx.font="11px sans-serif"; ctx.fillStyle="#dfe4ff";
   ctx.fillText(label, 8, y0+hgt-8);   // 左下(左上は HUD と重なる)
   ctx.restore();
@@ -1844,9 +1846,13 @@ function drawWorldInto(S, y0, hgt, label){
 function renderAB(){
   ctx.setTransform(dpr,0,0,dpr,0,0);
   ctx.fillStyle="#05070f"; ctx.fillRect(0,0,cw,ch);
-  const hh=ch/2;
-  drawWorldInto(sim, 0, hh, "A: "+ab.key+"="+fmt(sim.params[ab.key]));
-  drawWorldInto(ab.simB, hh, hh-1, "B: "+ab.key+"="+fmt(ab.simB.params[ab.key]));
+  // 線の軌跡の記録(A/B両側。render() と同じ間引き)
+  if(sim.overlays.trail && running && (frameCount%2)===0){
+    recTrail(sim,trailBuf); recTrail(ab.simB,trailBufB);
+  }
+  const hh=ch/2, lk=ab.lastKey;   // v1.19: A側で最後に調整したパラメータを両画面に表示
+  drawWorldInto(sim, 0, hh, lk? "A: "+lk+"="+fmt(sim.params[lk]) : "A", trailBuf);
+  drawWorldInto(ab.simB, hh, hh-1, lk? "B: "+lk+"="+fmt(ab.simB.params[lk]) : "B", trailBufB);
   ctx.strokeStyle="#2a3060"; ctx.lineWidth=1.5;
   ctx.beginPath(); ctx.moveTo(0,hh); ctx.lineTo(cw,hh); ctx.stroke(); ctx.lineWidth=1;
 }
@@ -1857,7 +1863,7 @@ function loop(now){
   const dtms=now-lastFrame; lastFrame=now;
   fpsEMA+= (1000/Math.max(1,dtms)-fpsEMA)*0.05;
   if(running){
-    stepAcc+=SUBSTEPS*sim.params.timeScale;
+    stepAcc+=SUBSTEPS*sim.params.timeScale*speedMul;   // v1.19: 時間倍率×プルダウン倍率
     let k=Math.floor(stepAcc); stepAcc-=k;
     k=Math.min(k,24);
     for(let s2=0;s2<k;s2++) sim.step(DT);
@@ -1942,66 +1948,54 @@ function loadPreset(id, keepPhysics){
   const merged=JSON.parse(JSON.stringify(p));
   if(keepPhysics && basePhysics) merged.physics=Object.assign({},sim.params);
   sim.build(merged);
-  trailBuf=[];  // 軌道トレイルはプリセット読込・⏮初めからでリセット
+  trailBuf=[]; trailBufB=[];  // 軌道トレイルはプリセット読込・⏮初めからでリセット
   if(sim.overlays && sim.overlays.monitor) monitorOn=true;  // v1.12: プリセット既定の保存量モニタ(ONのみ適用)
   basePhysics=Object.assign({},DEFAULT_PHYSICS,p.physics||{});
   camX=0; camY=0; camScale=p.camera.scale; tempP90EMA=0.5; selIdx=-1; nanNotified=false;
   paramsDirty=false;   // v1.17: プリセット読込で編集は破棄される(⏮は呼び出し側で維持)
   running=false; updatePlayBtn(); updateBodyEdit();
-  buildParamRows(); renderHelp(); updateAbSuggest();
+  buildParamRows(); renderHelp();
   $("#presetSelect").value=p.id;
+  updateSaveNameDefault();   // v1.19: セーブ名の初期値=プリセット名+サフィックス
 }
 
-// ===== A/B比較モード(v1.13・付録M。第6次裁定 7.7)=====
-// 同一プリセット(=同一シード)から2つのシムを構築し、1パラメータだけ変えて同時駆動する。
-let ab=null; // {key, valB, simB}
-function abParamOptions(){
-  const sel=$("#abParam"); sel.textContent="";
-  for(const def of PARAM_DEFS){
-    if(def.key==="timeScale") continue; // 時間同期の前提(両者は同じ座標時間を刻む)
-    const o=document.createElement("option"); o.value=def.key; o.textContent=paramLabel(def);
-    sel.appendChild(o);
-  }
-  if(ab) sel.value=ab.key;
-  abPrefill();
-}
-function abPrefill(){ // B側の初期値: 現在値(編集して開始する)
-  const k=$("#abParam").value; if(!k) return;
-  $("#abVal").value=fmt(sim.params[k]);
-}
+// ===== A/B比較モード(v1.13・付録M → v1.19 全面刷新)=====
+// 開始時点の「今の状態」を A とし、その完全コピー B を作って上下に並べて同時駆動する。
+// 実行中のパラメータ編集は A 側にのみ効く(最後に調整したパラメータの値を両画面に表示)。
+// 終了時は A をそのまま継続し、B を破棄する。
+let ab=null; // {simB, lastKey}
 function updateAbBtn(){ $("#btnAB").textContent=ab?T("btnAbStop"):T("btnAbStart"); }
+function cloneSimState(){ // 現在の sim の完全コピー(同一プリセットで確保→状態を転写)
+  const simB=makeSim(); simB.build(JSON.parse(JSON.stringify(currentPreset)));
+  if(simB.n===sim.n){
+    for(const k of ["m","x","y","vx","vy","spin","R","rotA","tau","uPx","uPy",
+      "railR","railAng","railOmega","railCx","railCy"]) simB[k].set(sim[k]);
+    simB.pinned.set(sim.pinned); simB.hasU.set(sim.hasU);
+  }
+  simB.t=sim.t; simB.resPx=sim.resPx; simB.resPy=sim.resPy; simB.resL=sim.resL;
+  simB.radE=sim.radE; simB.radL=sim.radL;
+  simB.params=Object.assign({},sim.params);
+  simB.world=JSON.parse(JSON.stringify(sim.world));
+  simB.rays=sim.rays?JSON.parse(JSON.stringify(sim.rays)):null;
+  simB.overlays=Object.assign({},sim.overlays);
+  return simB;
+}
+// key/valB は省略可(QA・プログラム用: 開始と同時に B 側の1パラメータを変更する)
 function abStart(key, valB){
-  const c=CLAMPS[key]; valB=clamp(valB,c[0],c[1]);
-  const mk2=()=>JSON.parse(JSON.stringify(currentPreset));
-  sim.build(mk2()); trailBuf=[]; selIdx=-1; nanNotified=false;
-  basePhysics=Object.assign({},DEFAULT_PHYSICS,currentPreset.physics||{});
-  const simB=makeSim(); simB.build(mk2());
-  simB.params=Object.assign({},sim.params); simB.params[key]=valB; simB.updateRadii();
-  ab={key, valB, simB};
-  running=false; updatePlayBtn(); updateAbBtn(); buildParamRows(); updateBodyEdit();
+  ab={simB:cloneSimState(), lastKey:null};
+  trailBufB=trailBuf.map(b=>b.slice());   // 線の軌跡も現在までの履歴ごと複製
+  if(key!==undefined){
+    const c=CLAMPS[key];
+    ab.simB.params[key]=clamp(valB,c[0],c[1]); ab.simB.updateRadii();
+    ab.lastKey=key;
+  }
+  selIdx=-1; updateAbBtn(); buildParamRows(); updateBodyEdit();
 }
-function abStop(){ ab=null; updateAbBtn(); }
+function abStop(){ ab=null; trailBufB=[]; updateAbBtn(); updateBodyEdit(); }
 $("#btnAB").addEventListener("click",()=>{
-  if(ab){ abStop(); loadPreset(currentPreset.id,false); notify(T("abStopped")); return; }
-  const key=$("#abParam").value;
-  const v=parseFloat(String($("#abVal").value).replace(/[,、\s]/g,""));
-  if(!key || !isFinite(v)) return;
-  abStart(key,v);
-  notify(T("abStarted")(key));
-});
-$("#abParam").addEventListener("change",abPrefill);
-// v1.15(第7次裁定): おすすめA/B — プリセットが宣言する対比(abSuggest:{param,value})を1タップで開始
-function updateAbSuggest(){
-  const s=currentPreset && currentPreset.abSuggest, row=$("#abSuggestRow");
-  if(!s){ row.style.display="none"; return; }
-  row.style.display="";
-  $("#btnAbSuggest").textContent=T("abSuggestBtn")(s.param, s.value);
-}
-$("#btnAbSuggest").addEventListener("click",()=>{
-  const s=currentPreset && currentPreset.abSuggest; if(!s) return;
-  $("#abParam").value=s.param; $("#abVal").value=String(s.value);
-  abStart(s.param, s.value);
-  notify(T("abStarted")(s.param));
+  if(ab){ abStop(); notify(T("abStopped")); return; }   // A の状態を継続し B を破棄
+  abStart();
+  notify(T("abStarted"));
 });
 
 // ===== トランスポート =====
@@ -2012,12 +2006,13 @@ function updatePlayBtn(){
 }
 $("#btnPlay").addEventListener("click",()=>{ running=!running; updatePlayBtn(); });
 $("#btnReset").addEventListener("click",()=>{
-  if(ab){ // A/B中: 両方を初期配置へ(A側の編集済みパラメータとB差分は保持)
-    const keepA=Object.assign({},sim.params), k=ab.key, vB=ab.simB.params[k];
-    abStart(k,vB);
-    sim.params=keepA; sim.updateRadii();
-    ab.simB.params=Object.assign({},keepA); ab.simB.params[k]=vB; ab.simB.updateRadii();
-    buildParamRows();
+  if(ab){ // A/B中: 両方を初期配置へ(A・Bそれぞれの編集済みパラメータは保持)
+    const keepA=Object.assign({},sim.params), keepB=Object.assign({},ab.simB.params);
+    const mk2=()=>JSON.parse(JSON.stringify(currentPreset));
+    sim.build(mk2()); sim.params=keepA; sim.updateRadii();
+    ab.simB.build(mk2()); ab.simB.params=keepB; ab.simB.updateRadii();
+    trailBuf=[]; trailBufB=[]; selIdx=-1; nanNotified=false;
+    running=false; updatePlayBtn(); buildParamRows(); updateBodyEdit();
     notify(T("abResetDone"));
     return;
   }
@@ -2029,11 +2024,10 @@ $("#btnReset").addEventListener("click",()=>{
   buildParamRows();
   notify(T("resetDone"));
 });
-$("#speedSel").addEventListener("change",e=>{
-  const base=basePhysics?basePhysics.timeScale:1;
-  sim.params.timeScale=clamp(base*parseFloat(e.target.value),CLAMPS.timeScale[0],CLAMPS.timeScale[1]);
-  buildParamRows();
-});
+// v1.19: 実効速度 = パラメータ「時間倍率」× プルダウンの倍率。
+// (旧: プルダウンがパラメータを書き換えていた — 直値入力と衝突するため分離)
+let speedMul=1;
+$("#speedSel").addEventListener("change",e=>{ speedMul=parseFloat(e.target.value)||1; });
 $("#presetSelect").addEventListener("change",e=>{
   const v=e.target.value;
   if(v.startsWith("save#")){ // v1.17: 保存一覧カテゴリからの読込
@@ -2090,6 +2084,7 @@ function buildParamRows(){
       const c=CLAMPS[key]; v=clamp(v,c[0],c[1]);
       sim.params[key]=v;
       if(key==="radiusScale") sim.updateRadii();
+      if(ab) ab.lastKey=key;  // v1.19: A/B比較中は「最後に調整したパラメータ」を両画面に表示
       paramsDirty=true;  // v1.17: 未保存の編集あり(バックアップ対象外の注意喚起に使用)
       return v;
     };
@@ -2101,7 +2096,8 @@ function buildParamRows(){
     });
     num.addEventListener("change",()=>{
       const v=parseFloat(num.value.replace(/[,、\s]/g,""));
-      if(isFinite(v)){ const applied=setParam(v); rng.value=valToSliderPos(def,applied); num.value=fmt(applied); }
+      // v1.19: 直値入力はそのまま反映(fmt で丸めた表示に置き換えない。値域外のみクランプ値を表示)
+      if(isFinite(v)){ const applied=setParam(v); rng.value=valToSliderPos(def,applied); num.value=String(applied); }
       else num.value=fmt(sim.params[key]);
     });
     row.appendChild(lab); row.appendChild(rng); row.appendChild(num); groupDiv.appendChild(row);
@@ -2110,6 +2106,10 @@ function buildParamRows(){
   const disp=document.createElement("div"); disp.className="group";
   const h=document.createElement("h3"); h.textContent=T("grpDisplay"); disp.appendChild(h);
   const toggles=[["trails",T("tgTrails"),()=>trailsOn,(v)=>trailsOn=v],
+    // v1.19: 線の軌跡(overlays.trail)をトグル化。A/B比較中はB側にも連動
+    ["trail",T("tgTrailLine"),()=>!!sim.overlays.trail,
+      (v)=>{ sim.overlays.trail=v; if(ab) ab.simB.overlays.trail=v;
+             if(!v){ trailBuf=[]; trailBufB=[]; } }],
     ["field",T("tgField"),()=>!!sim.overlays.field,(v)=>sim.overlays.field=v],
     // v1.17: 光線トグル — 光線ありプリセットはON/OFF、なしのプリセットも既定束(26本)で点灯できる
     ["rays",T("tgRays"),()=>!!(sim.rays&&sim.rays.n>0),
@@ -2153,6 +2153,21 @@ $("#btnParamDefault").addEventListener("click",()=>{
 // ===== セーブタブ =====
 function getSaves(){ try{ const a=JSON.parse(localStorage.getItem("hp_saves")||"[]"); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
 function setSaves(a){ localStorage.setItem("hp_saves",JSON.stringify(a)); }
+// v1.19: セーブ名の初期値 = 選択中プリセット名+サフィックス(保存済みの名前と被らない連番)
+function updateSaveNameDefault(){
+  if(!currentPreset) return;
+  const base=pName(currentPreset);
+  const names=new Set(getSaves().map(s=>s.name));
+  let k=1; while(names.has(base+" ("+k+")")) k++;
+  $("#saveName").value=base+" ("+k+")";
+}
+// v1.19: JSONのクリップボードコピー(保存一覧・生成済みプリセット共用)
+function copyJSON(data){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(data).then(()=>notify(T("copied")),
+      ()=>{ $("#ioArea").value=data; notify(T("copyFallback"),3500); });
+  } else { $("#ioArea").value=data; notify(T("copyFallback"),3500); }
+}
 $("#btnSave").addEventListener("click",()=>{
   const name=($("#saveName").value.trim()||T("untitled")+" "+new Date().toLocaleString(LANG==="en"?"en-US":"ja-JP"));
   const item={ name, comment:$("#saveComment").value, savedAt:new Date().toISOString(),
@@ -2160,7 +2175,8 @@ $("#btnSave").addEventListener("click",()=>{
     physics:Object.assign({},sim.params), cameraScale:camScale };
   try{ const a=getSaves(); a.unshift(item); setSaves(a); }
   catch(e){ alert(T("saveFailed")); return; }
-  $("#saveName").value=""; $("#saveComment").value="";
+  $("#saveComment").value="";
+  updateSaveNameDefault();   // v1.19: 次のデフォルト名(連番が進む)を再セット
   paramsDirty=false;  // v1.17: 保存済み → バックアップ対象に含まれる
   rebuildPresetSelect(currentPreset.id);  // v1.17: プルダウンの保存一覧カテゴリを更新
   renderSaves(); notify(T("savedAs")(name));
@@ -2178,10 +2194,13 @@ function renderSaves(){
     const btns=document.createElement("div"); btns.className="rowBtns";
     const bl=document.createElement("button"); bl.className="btn primary"; bl.textContent=T("btnLoad");
     bl.addEventListener("click",()=>loadSave(s,"save#"+idx));
+    // v1.19: JSONコピー(インポート可能な {saves:[…]} 形式)
+    const bc=document.createElement("button"); bc.className="btn"; bc.textContent=T("btnCopy");
+    bc.addEventListener("click",()=>copyJSON(JSON.stringify({saves:[s]},null,1)));
     const bd=document.createElement("button"); bd.className="btn danger"; bd.textContent=T("btnDelete");
     bd.addEventListener("click",()=>{ const arr=getSaves(); arr.splice(idx,1); setSaves(arr);
       rebuildPresetSelect(currentPreset.id); renderSaves(); });
-    btns.appendChild(bl); btns.appendChild(bd);
+    btns.appendChild(bl); btns.appendChild(bc); btns.appendChild(bd);
     d.appendChild(n); d.appendChild(meta); if(s.comment) d.appendChild(c); d.appendChild(btns);
     host.appendChild(d);
   });
@@ -2226,52 +2245,80 @@ function coerceImport(d){
   }
   return null;
 }
+// v1.19: 内容ベースの重複判定用シグネチャ(名前・説明・IDを除いた「パラメータ」全体)
+function presetSig(p){
+  return JSON.stringify({physics:Object.assign({},DEFAULT_PHYSICS,p.physics||{}),
+    bodies:p.bodies||[], world:p.world||null, camera:p.camera||null,
+    rays:p.rays||null, seed:isNum(p.seed)?p.seed:null});
+}
 function doImportText(text){
   let d;
   try{ d=JSON.parse(text); }catch(e){ notify(T("importFailed"),3000); return; }
   const co=coerceImport(d);
   if(!co){ notify(T("importFailed"),3000); return; }
-  // v1.17(旧: ID重複スキップ): 既存IDは ID と名前にサフィックスを付けて受け入れる。ID無しは付与
+  // v1.19(旧: ID重複でリネーム): パラメータが全く同じデータは取り込まない。
+  // 名前が同じでパラメータが異なるデータは名前にサフィックスを付けて受け入れる。IDは常に一意化。
   const cur=getCustomPresets();
   const seen=new Set(allPresets().map(p=>p.id));
-  let added=0, renamed=0, bad=0, firstErr="";
+  const sigs=new Set(getCustomPresets().map(p=>{ const v=validatePreset(p); return presetSig(v.ok?v.preset:p); }));
+  const names=new Set(allPresets().map(p=>p.name));
+  let added=0, skipped=0, renamed=0, bad=0, firstErr="";
   const addedPresets=[];   // v1.17: 保存一覧への自動登録用
   for(const c of co.customPresets){
     const v=validatePreset(c);
     if(!v.ok){ bad++; if(!firstErr) firstErr=v.errors[0]||""; continue; }
+    const sig=presetSig(v.preset);
+    if(sigs.has(sig)){ skipped++; continue; }
+    if(names.has(v.preset.name)){
+      let k=2; while(names.has(v.preset.name+" ("+k+")")) k++;
+      v.preset.name=v.preset.name+" ("+k+")"; renamed++;
+    }
     const id=(c && c.id!==undefined)? String(c.id) : "";
     if(id && seen.has(id)){
       let k=2, nid=id+"_2";
       while(seen.has(nid)){ k++; nid=id+"_"+k; }
       v.preset.id=nid;
-      v.preset.name=v.preset.name+" ("+k+")";
-      renamed++;
     } else {
       v.preset.id = id || ("custom_"+Date.now()+"_"+added);
     }
-    seen.add(v.preset.id); cur.push(v.preset); added++;
+    seen.add(v.preset.id); sigs.add(sig); names.add(v.preset.name);
+    cur.push(v.preset); added++;
     addedPresets.push({preset:v.preset, origId:id});
   }
   setCustomPresets(cur);
-  // セーブは完全一致(savedAt+presetId+name)のみ重複除外して追記
-  const key=(s)=>String(s.savedAt)+"|"+String(s.presetId)+"|"+String(s.name);
+  // セーブも内容(presetId+physics)で重複除外し、名前被りはサフィックスを付けて追記
   const ex=getSaves();
-  const have=new Set(ex.map(key));
-  const ns=co.saves.filter(s=>s&&typeof s==="object"&&!have.has(key(s)));
+  const sKey=(s)=>String(s.presetId)+"|"+JSON.stringify(Object.assign({},DEFAULT_PHYSICS,s.physics||{}));
+  const haveSig=new Set(ex.map(sKey));
+  const haveNames=new Set(ex.map(s=>s.name));
+  const ns=[];
+  const acceptSave=(s,countIt)=>{
+    if(haveSig.has(sKey(s))){ if(countIt) skipped++; return; }
+    let nm=s.name;
+    if(nm && haveNames.has(nm)){
+      let k=2; while(haveNames.has(nm+" ("+k+")")) k++;
+      nm=nm+" ("+k+")"; if(countIt) renamed++;
+    }
+    ns.push(Object.assign({},s,{name:nm}));
+    haveSig.add(sKey(s)); if(nm) haveNames.add(nm);
+    if(countIt) added++;
+  };
+  for(const s of co.saves){ if(s&&typeof s==="object") acceptSave(s,true); }
   // v1.17: インポートしたプリセットは必ず保存一覧に載せる(バックアップ内のセーブが
-  // 同じプリセットを参照している場合は二重登録しない)
+  // 同じプリセットを参照している場合は二重登録しない。自動登録は件数に数えない)
   const referenced=new Set(co.saves.map(s=>s&&String(s.presetId)));
   const now=new Date().toISOString();
   for(const a of addedPresets){
     if(referenced.has(a.origId)||referenced.has(a.preset.id)) continue;
-    ns.unshift({ name:a.preset.name, comment:"", savedAt:now,
+    acceptSave({ name:a.preset.name, comment:"", savedAt:now,
       presetId:a.preset.id, presetName:a.preset.name,
       physics:Object.assign({},DEFAULT_PHYSICS,a.preset.physics||{}),
-      cameraScale:(a.preset.camera&&a.preset.camera.scale)||undefined });
+      cameraScale:(a.preset.camera&&a.preset.camera.scale)||undefined }, false);
   }
   if(ns.length) setSaves(ns.concat(ex));
   rebuildPresetSelect(currentPreset.id); renderSaves(); renderCustomList();
-  let msg=T("importReport")(added,renamed,bad);
+  updateSaveNameDefault();
+  let msg=T("importReport")(added,skipped,renamed,bad);
   if(bad>0 && firstErr) msg+=" / "+firstErr;
   notify(msg, bad>0?4500:3000);
 }
@@ -2541,6 +2588,9 @@ function renderCustomList(){
     const btns=document.createElement("div"); btns.className="rowBtns";
     const bo=document.createElement("button"); bo.className="btn primary"; bo.textContent=T("btnOpen");
     bo.addEventListener("click",()=>{ loadPreset(c.id,false); notify(T("loadedAs")(c.name)); });
+    // v1.19: JSONコピー(単独プリセット形式 — そのままインポート可能)
+    const bc=document.createElement("button"); bc.className="btn"; bc.textContent=T("btnCopy");
+    bc.addEventListener("click",()=>copyJSON(JSON.stringify(c,null,1)));
     const bd=document.createElement("button"); bd.className="btn danger"; bd.textContent=T("btnDelete");
     bd.addEventListener("click",()=>{
       const arr2=getCustomPresets();
@@ -2549,7 +2599,7 @@ function renderCustomList(){
       rebuildPresetSelect(currentPreset.id); renderCustomList();
       if(currentPreset.id===c.id) loadPreset(BUILTIN_PRESETS[0].id,false);
     });
-    btns.appendChild(bo); btns.appendChild(bd);
+    btns.appendChild(bo); btns.appendChild(bc); btns.appendChild(bd);
     d.appendChild(n); d.appendChild(cm); d.appendChild(btns);
     host.appendChild(d);
   });
@@ -2566,9 +2616,8 @@ function applyLang(){
   document.querySelectorAll("#tabs button").forEach(b=>{ b.textContent=T(tabKeys[b.dataset.tab]); });
   $("#btnParamDefault").textContent=T("paramDefault");
   $("#paramNote").textContent=T("paramNote");
-  $("#abHead").textContent=T("abHead"); $("#abParamLabel").textContent=T("abParamLabel");
-  $("#abBLabel").textContent=T("abBLabel"); $("#abNote").textContent=T("abNote");
-  abParamOptions(); updateAbBtn();
+  $("#abHead").textContent=T("abHead"); $("#abNote").textContent=T("abNote");
+  updateAbBtn();
   const sh=document.querySelectorAll("#page-saves h3");
   // v1.18: 並び=保存 → バックアップ → 保存一覧
   sh[0].textContent=T("savesHeadSave"); sh[1].textContent=T("savesHeadBackup"); sh[2].textContent=T("savesHeadList");
@@ -2587,7 +2636,7 @@ function applyLang(){
   $("#btnGenerate").textContent=T("btnGenerate"); $("#aiListHead").textContent=T("aiListHead");
   $("#aiPrompt").placeholder=T("aiPromptPh");
   rebuildPresetSelect(currentPreset?currentPreset.id:undefined);
-  if(currentPreset){ buildParamRows(); renderHelp(); updateAbSuggest(); }
+  if(currentPreset){ buildParamRows(); renderHelp(); updateSaveNameDefault(); }
   renderSaves(); renderCustomList(); renderAiConfig(); updatePlayBtn();
 }
 $("#btnLang").addEventListener("click",()=>{
@@ -3029,6 +3078,7 @@ window.HP = { sim, loadPreset, allPresets, validatePreset, SYSTEM_PROMPT, extrac
   verify:VERIFY, traceRay, getSystemPrompt, aiCfg, T:(k)=>T(k), lang:()=>LANG,
   extractLawRefs, lawText, ab:()=>ab, abStart, abStop,
   externalTags, APP_VERSION, currentPreset:()=>currentPreset,  // v1.15: バッジ/バージョン同期のQA用
+  speedMul:()=>speedMul, trailBufs:()=>({a:trailBuf,b:trailBufB}),  // v1.19: QA用
   setLang:(l)=>{ LANG=(l==="en")?"en":"ja"; localStorage.setItem("hp_lang",LANG); applyLang(); },
   running:()=>running, setRunning:(v)=>{running=v;updatePlayBtn();},
   tick:(frames)=>{ for(let f=0;f<frames;f++){ const k=Math.max(1,Math.round(SUBSTEPS*sim.params.timeScale)); for(let s2=0;s2<Math.min(k,24);s2++) sim.step(DT); } render(); } };

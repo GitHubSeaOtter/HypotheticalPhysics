@@ -154,28 +154,31 @@ for (const id of await page.evaluate(() => HP.allPresets().filter(p => !String(p
   add('compat.kLens', ok, '');
 }
 
-// ---- 6) インポート4形式+ID重複リネーム(v1.17)+保存一覧登録+seed 再現性 ----
+// ---- 6) インポート4形式+内容重複判定(v1.19)+保存一覧登録+seed 再現性 ----
 {
   const r = await page.evaluate(() => {
-    const mk = (id) => ({ id, name: 'imp' + id, description: 'd', camera: { scale: 200 }, world: { boundary: 'none', size: 0 },
-      bodies: [{ type: 'single', m: 10, x: 0, y: 0, vx: 0, vy: 0, spin: 0, pinned: false }] });
+    // v1.19 の内容重複判定に合わせ、各インポートはパラメータ(質量)を変えて一意にする
+    const mk = (id, m) => ({ id, name: 'imp' + id, description: 'd', camera: { scale: 200 }, world: { boundary: 'none', size: 0 },
+      bodies: [{ type: 'single', m, x: 0, y: 0, vx: 0, vy: 0, spin: 0, pinned: false }] });
     const doImport = (obj) => { document.querySelector('#ioArea').value = JSON.stringify(obj); document.querySelector('#btnImport').click(); };
     const count = () => JSON.parse(localStorage.getItem('hp_custom_presets') || '[]').length;
     localStorage.setItem('hp_custom_presets', '[]');
     localStorage.setItem('hp_saves', '[]');
     const c0 = count();
-    doImport(mk('custom_qa_a'));                                   // 単独
-    doImport([mk('custom_qa_b'), mk('custom_qa_c')]);              // 配列
-    doImport({ customPresets: [mk('custom_qa_d')] });              // ラッパー
-    doImport({ schemaVersion: 2, saves: [], customPresets: [mk('custom_qa_e')] }); // バックアップ全体
+    doImport(mk('custom_qa_a', 10));                                        // 単独
+    doImport([mk('custom_qa_b', 11), mk('custom_qa_c', 12)]);               // 配列
+    doImport({ customPresets: [mk('custom_qa_d', 13)] });                   // ラッパー
+    doImport({ schemaVersion: 2, saves: [], customPresets: [mk('custom_qa_e', 14)] }); // バックアップ全体
     const c1 = count();
-    doImport(mk('custom_qa_a'));                                   // 重複 → リネームして受け入れ(v1.17)
+    doImport(mk('custom_qa_a', 10));      // パラメータが全く同じ → 取り込まない(v1.19)
     const c2 = count();
+    doImport(mk('custom_qa_a', 20));      // 同名同ID・パラメータ違い → 名前サフィックス+ID一意化
+    const c3 = count();
     const list = JSON.parse(localStorage.getItem('hp_custom_presets') || '[]');
     const renamedOk = list.some(p => p.id === 'custom_qa_a_2' && /\(2\)/.test(p.name));
     // v1.17: インポートしたプリセットは保存一覧にも登録される
     const saves = JSON.parse(localStorage.getItem('hp_saves') || '[]');
-    const savesOk = saves.length === c2 - c0 && saves.some(s => s.presetId === 'custom_qa_a')
+    const savesOk = saves.length === c3 - c0 && saves.some(s => s.presetId === 'custom_qa_a')
       && saves.some(s => s.presetId === 'custom_qa_a_2');
     // v1.17: プルダウンに保存一覧カテゴリ(💾)が現れる
     const og = [...document.querySelectorAll('#presetSelect optgroup')].map(o => o.label);
@@ -188,10 +191,11 @@ for (const id of await page.evaluate(() => HP.allPresets().filter(p => !String(p
     const diff = layout(sp('idA', 42)) !== layout(sp('idA', 43));
     localStorage.setItem('hp_custom_presets', '[]');
     localStorage.setItem('hp_saves', '[]');
-    return { addedAll: c1 - c0, dupDelta: c2 - c1, renamedOk, savesOk, ddOk, same, diff };
+    return { addedAll: c1 - c0, dupDelta: c2 - c1, renDelta: c3 - c2, renamedOk, savesOk, ddOk, same, diff };
   });
   add('import.formats', r.addedAll === 5, `added=${r.addedAll}/5`);
-  add('import.rename', r.dupDelta === 1 && r.renamedOk, `delta=${r.dupDelta} renamed=${r.renamedOk}`);
+  add('import.content-dedup', r.dupDelta === 0, `delta=${r.dupDelta}(同一パラメータは取り込まない)`);
+  add('import.rename', r.renDelta === 1 && r.renamedOk, `delta=${r.renDelta} renamed=${r.renamedOk}`);
   add('import.to-saves', r.savesOk, '');
   add('import.saves-dropdown', r.ddOk, '');
   add('seed.deterministic', r.same && r.diff, `sameSeed=${r.same} diffSeed=${r.diff}`);
@@ -361,29 +365,64 @@ for (const id of await page.evaluate(() => HP.allPresets().filter(p => !String(p
   add('grcal.rays', !r.missing && r.rays, '');
 }
 
-// ---- 7e) おすすめA/B(v1.15 第7次裁定): abSuggest 宣言の妥当性とワンタップ開始 ----
+// ---- 7e) v1.19 UI改善: 表記統一 / 直値入力 / 線の軌跡トグル / 速度倍率 / セーブ名初期値 / コピー ----
 {
+  // 一様重力の表記統一(g_x / g_y。Unicode 下付き gₓ の混在を排除)
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  add('label.gravity-notation', html.includes('一様重力 g_x') && html.includes('一様重力 g_y') && !html.includes('gₓ'), '');
   const r = await page.evaluate(() => {
-    const opts = [...document.querySelectorAll('#abParam option')].map(o => o.value);
-    const withS = HP.allPresets().filter(p => p.abSuggest);
-    const bad = withS.filter(p => !opts.includes(p.abSuggest.param) || !isFinite(p.abSuggest.value)).map(p => p.id);
-    HP.loadPreset('galaxy', false);
-    const visible = document.querySelector('#abSuggestRow').style.display !== 'none';
-    document.querySelector('#btnAbSuggest').click();
-    const ab2 = HP.ab();
-    const started = !!ab2 && ab2.key === 'kFrame' && ab2.simB.params.kFrame === 0;
-    HP.abStop(); HP.loadPreset('galaxy', false);
-    return { n: withS.length, bad, visible, started };
+    const res = {};
+    // 直値入力はそのまま反映(fmt 丸め表示に置き換えない)
+    HP.loadPreset('saturn', false);
+    const inp = document.querySelector('#paramRows .prow input.valIn');   // 先頭行 = G
+    inp.value = '0.123'; inp.dispatchEvent(new Event('change'));
+    res.direct = Math.abs(HP.sim.params.G - 0.123) < 1e-12 && inp.value === '0.123';
+    // 表示グループに「線の軌跡」トグルがあり、overlays.trail と連動する
+    const row = [...document.querySelectorAll('#paramRows .prow')]
+      .find(x => x.querySelector('label') && x.querySelector('label').textContent === '線の軌跡');
+    const cb = row && row.querySelector('input[type=checkbox]');
+    if (cb) {
+      cb.checked = true; cb.dispatchEvent(new Event('change'));
+      res.trailOn = HP.sim.overlays.trail === true;
+      cb.checked = false; cb.dispatchEvent(new Event('change'));
+      res.trailOff = HP.sim.overlays.trail === false;
+    }
+    // 実効速度 = 時間倍率 × プルダウン倍率(プルダウンはパラメータを書き換えない)
+    HP.loadPreset('saturn', false);
+    const ts0 = HP.sim.params.timeScale;
+    const sel = document.querySelector('#speedSel');
+    sel.value = '4'; sel.dispatchEvent(new Event('change'));
+    res.mul = HP.speedMul() === 4 && HP.sim.params.timeScale === ts0;
+    sel.value = '1'; sel.dispatchEvent(new Event('change'));
+    // セーブ名の初期値 = プリセット名+サフィックス
+    res.saveName = document.querySelector('#saveName').value.startsWith('土星の環 (');
+    // 保存一覧・生成済みプリセットに「コピー」ボタン
+    localStorage.setItem('hp_saves', JSON.stringify([{ name: 'qa_copy', comment: '', savedAt: new Date().toISOString(),
+      presetId: 'saturn', presetName: 's', physics: {}, cameraScale: 200 }]));
+    localStorage.setItem('hp_custom_presets', JSON.stringify([{ id: 'custom_qa_copy', name: 'c', description: 'd',
+      camera: { scale: 200 }, world: { boundary: 'none', size: 0 },
+      bodies: [{ type: 'single', m: 1, x: 0, y: 0, vx: 0, vy: 0, spin: 0, pinned: false }] }]));
+    document.querySelector('#tabs button[data-tab=saves]').click();
+    res.saveCopyBtn = [...document.querySelectorAll('#saveList button')].some(b => b.textContent === 'コピー');
+    document.querySelector('#tabs button[data-tab=ai]').click();
+    res.customCopyBtn = [...document.querySelectorAll('#customList button')].some(b => b.textContent === 'コピー');
+    document.querySelector('#tabs button[data-tab=ai]').click();   // パネルを閉じる
+    localStorage.setItem('hp_saves', '[]'); localStorage.setItem('hp_custom_presets', '[]');
+    return res;
   });
-  add('absuggest.valid', r.bad.length === 0 && r.n >= 5, `n=${r.n} bad=${r.bad.join(',')}`);
-  add('absuggest.one-tap', r.visible && r.started, '');
+  add('params.direct-input', r.direct, '');
+  add('display.trail-toggle', r.trailOn && r.trailOff, '');
+  add('speed.multiplier', r.mul, '');
+  add('saves.default-name', r.saveName, '');
+  add('saves.copy-button', r.saveCopyBtn, '');
+  add('customs.copy-button', r.customCopyBtn, '');
 }
 
-// ---- 7c) A/B比較モード(v1.13): 同一初期条件・1パラメータ差・両シム同時駆動 ----
+// ---- 7c) A/B比較モード(v1.13 → v1.19 コピー方式): 同一初期条件・両シム同時駆動・A継続 ----
 {
   const r = await page.evaluate(async () => {
     HP.loadPreset('galaxy', false);
-    HP.abStart('kFrame', 0);
+    HP.abStart('kFrame', 0);   // QA API: 開始と同時に B 側の1パラメータを変更
     const ab = HP.ab();
     const sameInit = Math.abs(HP.sim.x[5] - ab.simB.x[5]) < 1e-9 && Math.abs(HP.sim.y[5] - ab.simB.y[5]) < 1e-9;
     const paramsDiffer = HP.sim.params.kFrame === 1 && ab.simB.params.kFrame === 0;
@@ -394,13 +433,34 @@ for (const id of await page.evaluate(() => HP.allPresets().filter(p => !String(p
     const evolvedDiff = Math.abs(HP.sim.x[5] - ab.simB.x[5]) > 1e-6; // kFrame差が軌道に効く
     HP.abStop(); HP.loadPreset('galaxy', false);
     const stopped = HP.ab() === null;
-    return { sameInit, paramsDiffer, bothAdvanced, evolvedDiff, stopped };
+    // v1.19: 実行途中からの開始 — B は「今の状態」の完全コピー。終了で A を継続し B を破棄
+    HP.loadPreset('fig8', false);
+    for (let k = 0; k < 500; k++) HP.sim.step(0.016);
+    const t0 = HP.sim.t, x0 = HP.sim.x[0];
+    HP.abStart();
+    const ab3 = HP.ab();
+    const copyState = Math.abs(ab3.simB.t - t0) < 1e-9 && Math.abs(ab3.simB.x[0] - x0) < 1e-9
+      && ab3.simB.params.G === HP.sim.params.G;
+    // 線の軌跡が A/B 比較でも記録される(fig8 は overlays.trail=true)
+    HP.setRunning(true);
+    await new Promise(res => setTimeout(res, 500));
+    HP.setRunning(false);
+    const tb = HP.trailBufs();
+    const abTrail = tb.a.some(b => b && b.length > 0) && tb.b.some(b => b && b.length > 0);
+    const tStop = HP.sim.t;
+    HP.abStop();
+    const keepsA = HP.ab() === null && Math.abs(HP.sim.t - tStop) < 1e-9 && HP.sim.t > t0;
+    HP.loadPreset('galaxy', false);
+    return { sameInit, paramsDiffer, bothAdvanced, evolvedDiff, stopped, copyState, abTrail, keepsA };
   });
   add('ab.same-init', r.sameInit, '');
   add('ab.params-differ', r.paramsDiffer, '');
   add('ab.sync-advance', r.bothAdvanced, '');
   add('ab.effect-visible', r.evolvedDiff, '');
   add('ab.stop', r.stopped, '');
+  add('ab.copy-state', r.copyState, '');
+  add('ab.trail-view', r.abTrail, '');
+  add('ab.stop-keeps-A', r.keepsA, '');
 }
 
 // ---- 8) 長時間挙動: 🌌銀河平坦化(定量)と🪐土星(環残存)。QA_FAST=1 で省略 ----
