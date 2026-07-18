@@ -70,6 +70,32 @@ const add = (id, pass, detail) => {
   add('slider.covers-builtins', over.length === 0, over.slice(0, 5).join(' '));
 }
 
+// ---- 0d) 内蔵プリセットの physics 完全明示(v1.18 第8次裁定): 18キー全指定+件数がREADMEと一致 ----
+{
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  const KEYS = ['G', 'D0', 'kFrame', 'q', 'kRep', 'muF', 'gammaN', 'kappaS', 'Kt', 'cLight', 'bM',
+    'etaRad', 'pRad', 'gravityX', 'gravityY', 'radiusScale', 'softening', 'timeScale'];
+  const block = html.match(/const BUILTIN_PRESETS = \[([\s\S]*?)\n\];/)[1];
+  const missing = [];
+  let nPhys = 0;
+  for (const mm of block.matchAll(/physics:\{([\s\S]*?)\}/g)) {
+    nPhys++;
+    const have = new Set([...mm[1].matchAll(/(\w+)\s*:/g)].map(x => x[1]));
+    for (const k of KEYS) if (!have.has(k)) missing.push(`#${nPhys}:${k}`);
+  }
+  add('builtin.explicit-physics', nPhys > 0 && missing.length === 0, missing.slice(0, 6).join(' '));
+  const nPresets = [...block.matchAll(/\n\{ id:"/g)].length;
+  const readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
+  const rm = readme.match(/\*\*(\d+)の内蔵シミュレーション\*\*/);
+  add('builtin.count', !!rm && nPresets === +rm[1], `presets=${nPresets} README=${rm && rm[1]}`);
+}
+
+// ---- 0e) ドキュメント同期(v1.18): PHYSICS.md の既定表に一様重力がある ----
+{
+  const phys = fs.readFileSync(path.join(ROOT, 'docs', 'PHYSICS.md'), 'utf8');
+  add('docs.gravity-params', phys.includes('gravityX') && phys.includes('gravityY'), '');
+}
+
 const browser = await getBrowser();
 const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
 const pageErrors = [];
@@ -128,22 +154,35 @@ for (const id of await page.evaluate(() => HP.allPresets().filter(p => !String(p
   add('compat.kLens', ok, '');
 }
 
-// ---- 6) インポート4形式+ID重複スキップ+seed 再現性 ----
+// ---- 6) インポート4形式+内容重複判定(v1.19)+保存一覧登録+seed 再現性 ----
 {
   const r = await page.evaluate(() => {
-    const mk = (id) => ({ id, name: 'imp' + id, description: 'd', camera: { scale: 200 }, world: { boundary: 'none', size: 0 },
-      bodies: [{ type: 'single', m: 10, x: 0, y: 0, vx: 0, vy: 0, spin: 0, pinned: false }] });
+    // v1.19 の内容重複判定に合わせ、各インポートはパラメータ(質量)を変えて一意にする
+    const mk = (id, m) => ({ id, name: 'imp' + id, description: 'd', camera: { scale: 200 }, world: { boundary: 'none', size: 0 },
+      bodies: [{ type: 'single', m, x: 0, y: 0, vx: 0, vy: 0, spin: 0, pinned: false }] });
     const doImport = (obj) => { document.querySelector('#ioArea').value = JSON.stringify(obj); document.querySelector('#btnImport').click(); };
     const count = () => JSON.parse(localStorage.getItem('hp_custom_presets') || '[]').length;
     localStorage.setItem('hp_custom_presets', '[]');
+    localStorage.setItem('hp_saves', '[]');
     const c0 = count();
-    doImport(mk('custom_qa_a'));                                   // 単独
-    doImport([mk('custom_qa_b'), mk('custom_qa_c')]);              // 配列
-    doImport({ customPresets: [mk('custom_qa_d')] });              // ラッパー
-    doImport({ schemaVersion: 2, saves: [], customPresets: [mk('custom_qa_e')] }); // バックアップ全体
+    doImport(mk('custom_qa_a', 10));                                        // 単独
+    doImport([mk('custom_qa_b', 11), mk('custom_qa_c', 12)]);               // 配列
+    doImport({ customPresets: [mk('custom_qa_d', 13)] });                   // ラッパー
+    doImport({ schemaVersion: 2, saves: [], customPresets: [mk('custom_qa_e', 14)] }); // バックアップ全体
     const c1 = count();
-    doImport(mk('custom_qa_a'));                                   // 重複 → スキップ
+    doImport(mk('custom_qa_a', 10));      // パラメータが全く同じ → 取り込まない(v1.19)
     const c2 = count();
+    doImport(mk('custom_qa_a', 20));      // 同名同ID・パラメータ違い → 名前サフィックス+ID一意化
+    const c3 = count();
+    const list = JSON.parse(localStorage.getItem('hp_custom_presets') || '[]');
+    const renamedOk = list.some(p => p.id === 'custom_qa_a_2' && /\(2\)/.test(p.name));
+    // v1.17: インポートしたプリセットは保存一覧にも登録される
+    const saves = JSON.parse(localStorage.getItem('hp_saves') || '[]');
+    const savesOk = saves.length === c3 - c0 && saves.some(s => s.presetId === 'custom_qa_a')
+      && saves.some(s => s.presetId === 'custom_qa_a_2');
+    // v1.17: プルダウンに保存一覧カテゴリ(💾)が現れる
+    const og = [...document.querySelectorAll('#presetSelect optgroup')].map(o => o.label);
+    const ddOk = og.includes('保存一覧') || og.includes('Saved items');
     // seed 再現性: 同じ seed なら id が違っても同一初期配置
     const sp = (id, seed) => ({ id, seed, name: 's', description: 'd', camera: { scale: 200 }, world: { boundary: 'box', size: 200 },
       bodies: [{ type: 'box', n: 30, cx: 0, cy: 0, w: 300, h: 300, mMin: 1, mMax: 2, spinMin: 0, spinMax: 1, vScale: 1 }] });
@@ -151,10 +190,14 @@ for (const id of await page.evaluate(() => HP.allPresets().filter(p => !String(p
     const same = layout(sp('idA', 42)) === layout(sp('idB', 42));
     const diff = layout(sp('idA', 42)) !== layout(sp('idA', 43));
     localStorage.setItem('hp_custom_presets', '[]');
-    return { addedAll: c1 - c0, dupDelta: c2 - c1, same, diff };
+    localStorage.setItem('hp_saves', '[]');
+    return { addedAll: c1 - c0, dupDelta: c2 - c1, renDelta: c3 - c2, renamedOk, savesOk, ddOk, same, diff };
   });
   add('import.formats', r.addedAll === 5, `added=${r.addedAll}/5`);
-  add('import.dedup', r.dupDelta === 0, `delta=${r.dupDelta}`);
+  add('import.content-dedup', r.dupDelta === 0, `delta=${r.dupDelta}(同一パラメータは取り込まない)`);
+  add('import.rename', r.renDelta === 1 && r.renamedOk, `delta=${r.renDelta} renamed=${r.renamedOk}`);
+  add('import.to-saves', r.savesOk, '');
+  add('import.saves-dropdown', r.ddOk, '');
   add('seed.deterministic', r.same && r.diff, `sameSeed=${r.same} diffSeed=${r.diff}`);
 }
 
@@ -192,6 +235,69 @@ for (const id of await page.evaluate(() => HP.allPresets().filter(p => !String(p
   add('new.coolrace', r.cR21 > 5 && r.cR21 < 12 && r.cR32 > 5 && r.cR32 < 12 && r.cDrift < 1e-6,
     `ratio=${r.cR21.toFixed(1)}/${r.cR32.toFixed(1)} (理論8) drift=${r.cDrift}`);
   add('new.counterring', !r.rNaN && r.rHot > 0.3 && r.rCold < 0.05, `muF1=${r.rHot.toFixed(2)} muF0=${r.rCold.toFixed(3)}`);
+}
+
+// ---- 7g) 一様重力場(v1.17): gravityY の等加速度・帳簿記録・外部要素バッジ ----
+{
+  const r = await page.evaluate(() => {
+    const p = HP.validatePreset({ name: 'g', description: 'd', camera: { scale: 200 }, world: { boundary: 'none', size: 0 },
+      physics: { G: 0, D0: 2, kFrame: 0, kRep: 0, muF: 0, gammaN: 0, kappaS: 0, gravityY: 0.5 },
+      bodies: [{ type: 'single', m: 2, x: 0, y: 0, vx: 0, vy: 0, spin: 0, pinned: false }] });
+    if (!p.ok) return { ok: false };
+    HP.sim.build(p.preset);
+    for (let k = 0; k < 100; k++) HP.sim.step(0.016);            // t=1.6 → vy=0.8
+    const vy = HP.sim.vy[0], y = HP.sim.y[0];
+    const ledger = Math.abs(2 * vy + HP.sim.resPy) < 1e-4;       // P+帳簿P=一定(T7 恒等式)
+    const tags = HP.externalTags({ physics: { gravityY: 0.5 }, bodies: [] });
+    // v1.18: 解析一致 y = ½gt²(シンプレクティックEulerの離散化誤差 O(dt) 込みで 2% 許容)
+    const yTh = 0.5 * 0.5 * 1.6 * 1.6;
+    const yOk = Math.abs(y - yTh) / yTh < 0.02;
+    return { ok: true, vy, y, yTh, yOk, ledger, grav: !!tags.grav };
+  });
+  add('gravity.uniform', r.ok && Math.abs(r.vy - 0.8) < 1e-3 && r.yOk && r.ledger && r.grav,
+    r.ok ? `vy=${r.vy.toFixed(3)}(理論0.8) y=${r.y.toFixed(3)}(理論${r.yTh}) 帳簿=${r.ledger} badge=${r.grav}` : 'validate failed');
+}
+
+// ---- 7i) v1.18 新サンプル/修正の挙動: 浮力分離・merger円盤並進・collapse初期回転 ----
+{
+  const r = await page.evaluate(() => {
+    const s = HP.sim, res = {};
+    // 🧪 buoyancy: 12000步で重い粒子群が軽い粒子群より下(平均yが大きい)に分離する
+    // (掃引実測: 6000步≈20 → 12000步≈50-70 に成長し持続。12000步時点を判定)
+    HP.loadPreset('buoyancy', false);
+    for (let k = 0; k < 12000; k++) s.step(0.016);
+    let hy = 0, hc = 0, ly = 0, lc = 0;
+    for (let i = 0; i < s.n; i++) {
+      if (s.pinned[i]) continue;
+      if (s.m[i] > 1) { hy += s.y[i]; hc++; } else { ly += s.y[i]; lc++; }
+    }
+    res.buoySep = (hc ? hy / hc : 0) - (lc ? ly / lc : 0);   // >0 = 重い側が下
+    res.buoyNaN = s.hasNaN();
+    // 🌠 merger: 円盤が核と同じ並進速度で生成される(bulkVx/Vy。v1.18 修正)
+    HP.loadPreset('merger', false);
+    let dvx = 0, dvy = 0, dc = 0;
+    for (let i = 0; i < s.n; i++) {   // 左銀河: 核=index0、円盤=核から半径130以内の自由粒子
+      if (i === 0 || s.m[i] > 100) continue;
+      const dx = s.x[i] - s.x[0], dy = s.y[i] - s.y[0];
+      if (dx * dx + dy * dy < 130 * 130) { dvx += s.vx[i]; dvy += s.vy[i]; dc++; }
+    }
+    res.mergerDv = Math.hypot(dvx / dc - s.vx[0], dvy / dc - s.vy[0]);
+    // 🌫️ collapse: 初期回転(v1.18)でも有界・NaNなし・全角運動量が正(回転獲得)
+    HP.loadPreset('collapse', false);
+    for (let k = 0; k < 6000; k++) s.step(0.016);
+    let rMax = 0, L = 0;
+    for (let i = 0; i < s.n; i++) {
+      rMax = Math.max(rMax, Math.hypot(s.x[i], s.y[i]));
+      L += s.m[i] * (s.x[i] * s.vy[i] - s.y[i] * s.vx[i]);
+    }
+    res.colRMax = rMax; res.colL = L; res.colNaN = s.hasNaN();
+    return res;
+  });
+  add('behavior.buoyancy', !r.buoyNaN && r.buoySep > 20,
+    `分離(重-軽の平均y差)=${r.buoySep.toFixed(1)} (>20)`);
+  add('merger.bulk-velocity', r.mergerDv < 0.1, `|v̄円盤−v核|=${r.mergerDv.toFixed(3)} (<0.1)`);
+  add('collapse.rotation', !r.colNaN && r.colRMax < 600 && r.colL > 0,
+    `rMax=${r.colRMax.toFixed(0)} (<600) L=${r.colL.toFixed(0)} (>0)`);
 }
 
 // ---- 7b) 理論解説パネル(v1.13): 全内蔵の説明から法則参照が抽出され、ヘルプに表示される ----
@@ -259,29 +365,64 @@ for (const id of await page.evaluate(() => HP.allPresets().filter(p => !String(p
   add('grcal.rays', !r.missing && r.rays, '');
 }
 
-// ---- 7e) おすすめA/B(v1.15 第7次裁定): abSuggest 宣言の妥当性とワンタップ開始 ----
+// ---- 7e) v1.19 UI改善: 表記統一 / 直値入力 / 線の軌跡トグル / 速度倍率 / セーブ名初期値 / コピー ----
 {
+  // 一様重力の表記統一(g_x / g_y。Unicode 下付き gₓ の混在を排除)
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  add('label.gravity-notation', html.includes('一様重力 g_x') && html.includes('一様重力 g_y') && !html.includes('gₓ'), '');
   const r = await page.evaluate(() => {
-    const opts = [...document.querySelectorAll('#abParam option')].map(o => o.value);
-    const withS = HP.allPresets().filter(p => p.abSuggest);
-    const bad = withS.filter(p => !opts.includes(p.abSuggest.param) || !isFinite(p.abSuggest.value)).map(p => p.id);
-    HP.loadPreset('galaxy', false);
-    const visible = document.querySelector('#abSuggestRow').style.display !== 'none';
-    document.querySelector('#btnAbSuggest').click();
-    const ab2 = HP.ab();
-    const started = !!ab2 && ab2.key === 'kFrame' && ab2.simB.params.kFrame === 0;
-    HP.abStop(); HP.loadPreset('galaxy', false);
-    return { n: withS.length, bad, visible, started };
+    const res = {};
+    // 直値入力はそのまま反映(fmt 丸め表示に置き換えない)
+    HP.loadPreset('saturn', false);
+    const inp = document.querySelector('#paramRows .prow input.valIn');   // 先頭行 = G
+    inp.value = '0.123'; inp.dispatchEvent(new Event('change'));
+    res.direct = Math.abs(HP.sim.params.G - 0.123) < 1e-12 && inp.value === '0.123';
+    // 表示グループに「線の軌跡」トグルがあり、overlays.trail と連動する
+    const row = [...document.querySelectorAll('#paramRows .prow')]
+      .find(x => x.querySelector('label') && x.querySelector('label').textContent === '線の軌跡');
+    const cb = row && row.querySelector('input[type=checkbox]');
+    if (cb) {
+      cb.checked = true; cb.dispatchEvent(new Event('change'));
+      res.trailOn = HP.sim.overlays.trail === true;
+      cb.checked = false; cb.dispatchEvent(new Event('change'));
+      res.trailOff = HP.sim.overlays.trail === false;
+    }
+    // 実効速度 = 時間倍率 × プルダウン倍率(プルダウンはパラメータを書き換えない)
+    HP.loadPreset('saturn', false);
+    const ts0 = HP.sim.params.timeScale;
+    const sel = document.querySelector('#speedSel');
+    sel.value = '4'; sel.dispatchEvent(new Event('change'));
+    res.mul = HP.speedMul() === 4 && HP.sim.params.timeScale === ts0;
+    sel.value = '1'; sel.dispatchEvent(new Event('change'));
+    // セーブ名の初期値 = プリセット名+サフィックス
+    res.saveName = document.querySelector('#saveName').value.startsWith('土星の環 (');
+    // 保存一覧・生成済みプリセットに「コピー」ボタン
+    localStorage.setItem('hp_saves', JSON.stringify([{ name: 'qa_copy', comment: '', savedAt: new Date().toISOString(),
+      presetId: 'saturn', presetName: 's', physics: {}, cameraScale: 200 }]));
+    localStorage.setItem('hp_custom_presets', JSON.stringify([{ id: 'custom_qa_copy', name: 'c', description: 'd',
+      camera: { scale: 200 }, world: { boundary: 'none', size: 0 },
+      bodies: [{ type: 'single', m: 1, x: 0, y: 0, vx: 0, vy: 0, spin: 0, pinned: false }] }]));
+    document.querySelector('#tabs button[data-tab=saves]').click();
+    res.saveCopyBtn = [...document.querySelectorAll('#saveList button')].some(b => b.textContent === 'コピー');
+    document.querySelector('#tabs button[data-tab=ai]').click();
+    res.customCopyBtn = [...document.querySelectorAll('#customList button')].some(b => b.textContent === 'コピー');
+    document.querySelector('#tabs button[data-tab=ai]').click();   // パネルを閉じる
+    localStorage.setItem('hp_saves', '[]'); localStorage.setItem('hp_custom_presets', '[]');
+    return res;
   });
-  add('absuggest.valid', r.bad.length === 0 && r.n >= 5, `n=${r.n} bad=${r.bad.join(',')}`);
-  add('absuggest.one-tap', r.visible && r.started, '');
+  add('params.direct-input', r.direct, '');
+  add('display.trail-toggle', r.trailOn && r.trailOff, '');
+  add('speed.multiplier', r.mul, '');
+  add('saves.default-name', r.saveName, '');
+  add('saves.copy-button', r.saveCopyBtn, '');
+  add('customs.copy-button', r.customCopyBtn, '');
 }
 
-// ---- 7c) A/B比較モード(v1.13): 同一初期条件・1パラメータ差・両シム同時駆動 ----
+// ---- 7c) A/B比較モード(v1.13 → v1.19 コピー方式): 同一初期条件・両シム同時駆動・A継続 ----
 {
   const r = await page.evaluate(async () => {
     HP.loadPreset('galaxy', false);
-    HP.abStart('kFrame', 0);
+    HP.abStart('kFrame', 0);   // QA API: 開始と同時に B 側の1パラメータを変更
     const ab = HP.ab();
     const sameInit = Math.abs(HP.sim.x[5] - ab.simB.x[5]) < 1e-9 && Math.abs(HP.sim.y[5] - ab.simB.y[5]) < 1e-9;
     const paramsDiffer = HP.sim.params.kFrame === 1 && ab.simB.params.kFrame === 0;
@@ -292,13 +433,34 @@ for (const id of await page.evaluate(() => HP.allPresets().filter(p => !String(p
     const evolvedDiff = Math.abs(HP.sim.x[5] - ab.simB.x[5]) > 1e-6; // kFrame差が軌道に効く
     HP.abStop(); HP.loadPreset('galaxy', false);
     const stopped = HP.ab() === null;
-    return { sameInit, paramsDiffer, bothAdvanced, evolvedDiff, stopped };
+    // v1.19: 実行途中からの開始 — B は「今の状態」の完全コピー。終了で A を継続し B を破棄
+    HP.loadPreset('fig8', false);
+    for (let k = 0; k < 500; k++) HP.sim.step(0.016);
+    const t0 = HP.sim.t, x0 = HP.sim.x[0];
+    HP.abStart();
+    const ab3 = HP.ab();
+    const copyState = Math.abs(ab3.simB.t - t0) < 1e-9 && Math.abs(ab3.simB.x[0] - x0) < 1e-9
+      && ab3.simB.params.G === HP.sim.params.G;
+    // 線の軌跡が A/B 比較でも記録される(fig8 は overlays.trail=true)
+    HP.setRunning(true);
+    await new Promise(res => setTimeout(res, 500));
+    HP.setRunning(false);
+    const tb = HP.trailBufs();
+    const abTrail = tb.a.some(b => b && b.length > 0) && tb.b.some(b => b && b.length > 0);
+    const tStop = HP.sim.t;
+    HP.abStop();
+    const keepsA = HP.ab() === null && Math.abs(HP.sim.t - tStop) < 1e-9 && HP.sim.t > t0;
+    HP.loadPreset('galaxy', false);
+    return { sameInit, paramsDiffer, bothAdvanced, evolvedDiff, stopped, copyState, abTrail, keepsA };
   });
   add('ab.same-init', r.sameInit, '');
   add('ab.params-differ', r.paramsDiffer, '');
   add('ab.sync-advance', r.bothAdvanced, '');
   add('ab.effect-visible', r.evolvedDiff, '');
   add('ab.stop', r.stopped, '');
+  add('ab.copy-state', r.copyState, '');
+  add('ab.trail-view', r.abTrail, '');
+  add('ab.stop-keeps-A', r.keepsA, '');
 }
 
 // ---- 8) 長時間挙動: 🌌銀河平坦化(定量)と🪐土星(環残存)。QA_FAST=1 で省略 ----
@@ -321,18 +483,33 @@ if (!FAST) {
     res.galA = outer(s); res.galB = outer(abG.simB);
     res.galNaN = s.hasNaN() || abG.simB.hasNaN();
     HP.abStop();
-    // 🪐 saturn
+    // 🪐 saturn(v1.17: 3環帯構成。環帯 135〜248 が全て計測環 45〜280 に収まる)
     HP.loadPreset('saturn', false);
     for (let k = 0; k < 24000; k++) s.step(0.016);
     let inAnn = 0, tot = 0;
     for (let i = 1; i < s.n; i++) { tot++; const r2 = Math.hypot(s.x[i], s.y[i]); if (r2 > 45 && r2 < 280) inAnn++; }
     res.satAnn = inAnn / tot; res.satDrift = Math.hypot(s.x[0], s.y[0]); res.satNaN = s.hasNaN();
+    // ♨️ convection(v1.17 復活): 24000步で NaN なし・循環が正(左で上昇・右で下降=circ>0)・
+    // ガスが凍結しない。温度の床天井差は対流セルでは定常指標にならない(熱柱の頭は天井にある)
+    // ため、循環量そのものを判定する。掃引実測: circ≈50・|v|≈0.6(48000步でも circ>10 持続)
+    HP.loadPreset('convection', false);
+    for (let k = 0; k < 24000; k++) s.step(0.016);
+    let circ = 0, sumV = 0, freeC = 0;
+    for (let i = 0; i < s.n; i++) {
+      if (s.pinned[i]) continue;
+      circ += s.x[i] * s.vy[i] - s.y[i] * s.vx[i];
+      sumV += Math.hypot(s.vx[i], s.vy[i]); freeC++;
+    }
+    res.convCirc = freeC ? circ / freeC : 0;
+    res.convV = freeC ? sumV / freeC : 0; res.convNaN = s.hasNaN();
     return res;
   });
   add('claim.galaxy-flatten', !r.galNaN && r.galA > r.galB * 1.04,
     `vφ外縁 kF1=${r.galA.toFixed(3)} kF0=${r.galB.toFixed(3)} 比=${(r.galA / r.galB).toFixed(3)} (>1.04)`);
   add('behavior.saturn', !r.satNaN && r.satAnn >= 0.95 && r.satDrift < 5,
     `inAnn=${(r.satAnn * 100).toFixed(1)}% drift=${r.satDrift.toFixed(1)}`);
+  add('behavior.convection', !r.convNaN && r.convCirc > 5 && r.convV > 0.3,
+    `循環=${r.convCirc.toFixed(1)} (>5) 平均|v|=${r.convV.toFixed(2)} (>0.3)`);
 } else {
   console.log('SKIP behavior.* (QA_FAST=1)');
 }
