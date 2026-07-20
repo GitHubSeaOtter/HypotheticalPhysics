@@ -646,6 +646,42 @@ for (const id of await page.evaluate(() => HP.allPresets().filter(p => !String(p
     `軽量/正確/自動の縮退値=${r.quality} セレクト行=${r.qualityRow}`);
 }
 
+// ---- 7n) v1.26: 物理対応ロック Kt=cLight²/G(決断事項4-12承認・第10次裁定P0-2)----
+// ON でKtが導出値になり cLight/G 編集に追随・Kt直接編集は導出値へ戻る・
+// OFF では条件外バッジ(一般化トイ設定)・G=0 はクランプ扱い・ロックはプリセットに保存されない
+{
+  const r = await page.evaluate(() => {
+    const res = {};
+    const findRow = (pre) => [...document.querySelectorAll('#paramRows .prow')]
+      .find(x => x.querySelector('label') && x.querySelector('label').textContent.startsWith(pre));
+    const badge = () => document.getElementById('physLockBadge').textContent;
+    HP.setPhysLock(false);
+    HP.loadPreset('grcal', false);                    // Kt=300, cLight=60, G=1(条件値3600)
+    res.before = HP.sim.params.Kt;
+    res.badgeOff = badge().includes('一般化トイ設定');
+    HP.setPhysLock(true);
+    res.locked = HP.sim.params.Kt;                    // → 3600
+    res.badgeOn = badge().includes('自動維持');
+    const cIn = findRow('光速').querySelector('input.valIn');
+    cIn.value = '30'; cIn.dispatchEvent(new Event('change'));
+    res.follow = HP.sim.params.Kt;                    // → 900
+    const kIn = findRow('時空係数').querySelector('input.valIn');
+    kIn.value = '50'; kIn.dispatchEvent(new Event('change'));
+    res.snapBack = HP.sim.params.Kt;                  // 直接編集は導出値 900 のまま
+    res.snapShown = kIn.value;                        // UI 表示も導出値
+    res.edge = HP.physLockCalc({ params: { G: 0, cLight: 30 } });   // クランプ+近似扱い
+    HP.setPhysLock(false);
+    HP.loadPreset('grcal', false);
+    res.after = HP.sim.params.Kt;                     // ロックはプリセットへ保存されない
+    return res;
+  });
+  add('physlock.kt-derive', r.before === 300 && r.locked === 3600 && r.follow === 900
+    && r.snapBack === 900 && r.snapShown === '900' && r.badgeOff && r.badgeOn
+    && r.edge.applied === 10000 && r.edge.clamped === true && r.after === 300,
+    `OFF時Kt=${r.before}(条件外バッジ=${r.badgeOff}) ON時=${r.locked} cLight30追随=${r.follow} `
+    + `Kt直編集=${r.snapBack}/表示${r.snapShown} G=0クランプ=${r.edge.applied}(近似=${r.edge.clamped}) 解除後=${r.after}`);
+}
+
 // ---- 7m) 論文改稿ゲート(第5次AI模擬査読 裁定 #7/#16。付録C-4 条件4)----
 // ① V1 収束表: 保存則残差が固定総時間 T=16 の dt 掃引で全て丸め床(<1.5e-5)に留まり、
 //    dt に依存しない(=方程式レベルの厳密保存+Float32 丸みのみ。実測 4.5e-6/1.28e-5/4.3e-6)
