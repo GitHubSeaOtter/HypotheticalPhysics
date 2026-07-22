@@ -1043,26 +1043,26 @@ const BUILTIN_PRESETS = [
   ],
   overlays:{rotationCurve:false,tempHistogram:false,field:false,trail:true} },
 
-{ id:"saturnIce", name:"土星の環(氷・低熱結合)", emoji:"🧊", group:"天体の物語",
-  description:"環の成分が氷(低質量・スピン0)で、粒が互いに離れているため熱がほぼ伝わらない — という仮定の実装(第12次裁定)。kappaS=0 で非接触のスピン拡散(E10′)を完全に停止し(kFrame も 0 — E6′ 経由の熱代理量の移動も遮断)、まれな接触のときだけ摩擦と減衰(E9: muF=0.2/gammaN=0.15)が働く。ほとんどの粒はスピン=熱が厳密に 0 のまま公転を続ける(機械検証)。環帯は現実の C/B/A 環の半径比(124–153/153–195/203–227、間隙195–203=カッシーニの間隙)に合わせ、中心天体の表示半径も現実の比率に近づけた(radiusScale 1.8)。A/B比較で kappaS を 0.08(🪐標準)にすると、熱結合の有無の差が見える。中心は固定の展示用天体 — 自転による扁平化・コア差動回転(多層土星モデル)は未実装で開発キューにある。",
-  en:{name:"Saturn's Rings (Icy, Thermally Isolated)", description:"Implements the assumption that the rings are made of ice grains too far apart to conduct heat (12th adjudication). kappaS=0 fully disables non-contact spin diffusion (E10\u2032), and kFrame=0 also blocks heat-proxy transfer via E6\u2032; only rare contacts dissipate via friction and damping (E9: muF=0.2, gammaN=0.15). Most grains keep exactly zero spin = heat while orbiting (machine-verified). The three bands follow the real C/B/A radius ratios (124\u2013153 / 153\u2013195 / 203\u2013227, with the 195\u2013203 gap as the Cassini Division), and the central body is drawn near the real proportion (radiusScale 1.8). A/B-compare with kappaS=0.08 (the \ud83e\ude90 default) to see the effect of thermal coupling. The center is a fixed display body \u2014 spin-driven oblateness and core differential rotation (a layered Saturn model) are not yet implemented and sit in the development queue."},
-  activeParams:["kappaS","muF","gammaN"],
-  camera:{scale:280}, world:{boundary:"none",size:0},
-  physics:{G:1, D0:2, kFrame:0, q:2, kRep:0, muF:0.2, gammaN:0.15, kappaS:0, Kt:60,
+{ id:"saturnIce", name:"土星の環(氷)", emoji:"🧊", group:"天体の物語",
+  description:"氷の粒(低質量 m=0.01–0.03)でできた環を、現実の C/B/A 環の半径比(124–153/153–195/203–227、間隙195–203=カッシーニの間隙)に配置したサンプル(第12次裁定+原仮定者調整 2026-07-22)。岩粒の🪐(muF=0.6/γN=0.5)より氷は散逸が弱い(muF=0.2/γN=0.15)が、中心星のスピンが空間を引きずり(kFrame=1・A8)、衝突円形化(T3)と合わさって t≈300 で綺麗な環に落ち着く(原仮定者の実機実測)。Kt=3600 は物理対応ロック Kt=c²/G の成立値。中心天体の表示半径も現実の比率に近づけた(radiusScale 1.8)。中心は固定の展示用天体 — 自転による扁平化・コア差動回転(多層土星モデル)は開発キューにある。",
+  en:{name:"Saturn's Rings (Icy)", description:"Rings of icy grains (low mass m=0.01\u20130.03) laid out at the real C/B/A radius ratios (124\u2013153 / 153\u2013195 / 203\u2013227, with the 195\u2013203 gap as the Cassini Division) \u2014 12th adjudication plus the originator's tuning (2026-07-22). Ice dissipates less than the rocky grains of \ud83e\ude90 (muF=0.2/\u03b3N=0.15 vs 0.6/0.5), but the central star's spin drags nearby space (kFrame=1, A8) and, together with collisional circularization (T3), the rings settle into a clean shape by t\u2248300 (measured on-device by the originator). Kt=3600 satisfies the GR-calibration lock Kt=c\u00b2/G. The central body is drawn near the real proportion (radiusScale 1.8) and is a fixed display body \u2014 spin-driven oblateness and core differential rotation (a layered Saturn model) sit in the development queue."},
+  activeParams:["kFrame","muF","kappaS"],
+  camera:{scale:340}, world:{boundary:"none",size:0},
+  physics:{G:1, D0:2, kFrame:1, q:2, kRep:1.2, muF:0.2, gammaN:0.15, kappaS:0.08, Kt:3600,
     cLight:60, bM:1, etaRad:0, pRad:4, gravityX:0, gravityY:0, geoPN:0, lambdaPN:1, pnAlpha:1.5, radiusScale:1.8, softening:2, timeScale:3},
-  bodies:[ // 第12次裁定(2026-07-22): ChatGPT 暫定案 §8 を内蔵化(現行スキーマの範囲 —
-           // 材質別係数・多層土星・E13適用はスキーマ拡張後の課題として保留)。
-           // 氷粒子: m=0.01–0.03・スピン0・低ノイズ(vNoise=0.005)。kappaS=0 が本プリセットの主役。
-           // kFrame は提案の 0.2 から 0 に裁定変更: DFM では spin=熱の代理量で、E6′ の残余トルク
-           // 移譲(A13 帳簿)が kFrame>0 だと非接触でスピンを動かし「熱がほぼ伝わらない」仮定に
-           // 反するため(実測: kFrame=0.2 → 全粒子 spin≠0 / kFrame=0 → 98.7% が厳密 0 を維持)。
+  bodies:[ // 第12次裁定(2026-07-22): ChatGPT 暫定案 §8 の環配置(現実の C/B/A 比率)を内蔵化。
+           // 原仮定者裁定(同日): physics は実機で t≈300 の安定環を確認した調整版セーブに合わせる —
+           // kFrame=1(空間引きずりが無いと DFM サンプルとしての意義が薄い)・kRep=1.2・
+           // kappaS=0.08・Kt=3600(物理対応ロック Kt=c²/G 成立値)。氷のスピン0制約も撤廃
+           // (spinMin=0, spinMax=0.1 = 🪐と同じ)。「熱の厳密分離」統制は材質別係数
+           // (多層土星スプリント)で扱う方針に変更。
     {type:"single", m:1500, x:0,y:0, vx:0,vy:0, spin:0.05, pinned:true},
     {type:"ring", n:90, cx:0,cy:0, rIn:124,rOut:153, mMin:0.01,mMax:0.03,
-     spinMin:0,spinMax:0, vMode:"kepler", aroundMass:1500, omega:0, vNoise:0.005, direction:1, pinned:false},
+     spinMin:0,spinMax:0.1, vMode:"kepler", aroundMass:1500, omega:0, vNoise:0.005, direction:1, pinned:false},
     {type:"ring", n:120, cx:0,cy:0, rIn:153,rOut:195, mMin:0.01,mMax:0.03,
-     spinMin:0,spinMax:0, vMode:"kepler", aroundMass:1500, omega:0, vNoise:0.005, direction:1, pinned:false},
+     spinMin:0,spinMax:0.1, vMode:"kepler", aroundMass:1500, omega:0, vNoise:0.005, direction:1, pinned:false},
     {type:"ring", n:90, cx:0,cy:0, rIn:203,rOut:227, mMin:0.01,mMax:0.03,
-     spinMin:0,spinMax:0, vMode:"kepler", aroundMass:1500, omega:0, vNoise:0.005, direction:1, pinned:false}
+     spinMin:0,spinMax:0.1, vMode:"kepler", aroundMass:1500, omega:0, vNoise:0.005, direction:1, pinned:false}
   ],
   overlays:{rotationCurve:false,tempHistogram:false,field:false} },
 
