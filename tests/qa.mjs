@@ -1039,10 +1039,12 @@ if (!FAST) {
     // 原仮定者指示: 🧭 は線の軌跡(overlays.trail)を既定ONにする
     const tr = await page.evaluate(() => { HP.loadPreset('saturnZonal', false); return !!HP.sim.overlays.trail; });
     add('zonal.trail-default', tr, `overlays.trail=${tr}`);
-    // E10′ 停止の機械検証: kappaS=0 では拡散配列 ds が全ゼロ / 0.08 では大多数が非ゼロ
+    // E10′ スイッチの機械検証(kappaS を実行時に切替): 0 → 拡散配列 ds 全ゼロ / 0.08 → 大多数が非ゼロ
+    // (原仮定者裁定 2026-07-22: プリセット既定は kappaS=0.08 に変更されたため、0 は実行時設定で検査)
     const dz = await page.evaluate(() => {
       HP.loadPreset('saturnIce', false);
       const s = HP.sim;
+      s.params.kappaS = 0;
       for (let k = 0; k < 5; k++) s.step(0.016);
       let nz0 = 0; for (let i = 0; i < s.n; i++) if (s.ds[i] !== 0) nz0++;
       s.params.kappaS = 0.08;
@@ -1053,22 +1055,27 @@ if (!FAST) {
     add('ice.e10-off', dz.nz0 === 0 && dz.nz8 >= dz.n * 0.9,
       `ds非ゼロ: kappaS=0 → ${dz.nz0}/${dz.n}(=0)/ kappaS=0.08 → ${dz.nz8}/${dz.n}(≥90%)`);
     if (!FAST) {
-      // 熱分離の長時間検証: 6000步後も大多数の環粒子が spin=熱 厳密0を維持(接触した粒だけ E9 で回る)
+      // 原仮定者調整版(kFrame=1・kRep=1.2・kappaS=0.08・Kt=3600)の長時間安定:
+      // t≈300(実機で「綺麗な環」を確認した時刻)まで回し、帯保持・落下/散逸なし・NaNなしを検査。
+      // 較正実測(2026-07-22): inB=100%・fall=0・esc=0・平均|spin| 0.15(t300)。
+      // カッシーニ間隙は時間とともに埋まる(t300 で 20%)ため判定に使わない。
       const iso = await page.evaluate(() => {
         HP.loadPreset('saturnIce', false);
         const s = HP.sim;
-        for (let k = 0; k < 6000; k++) s.step(0.016);
-        let zero = 0, sum = 0, inB = 0;
+        for (let k = 0; k < 18750; k++) s.step(0.016);
+        let inB = 0, fall = 0, esc = 0, sum = 0;
         for (let i = 1; i < s.n; i++) {
-          const a = Math.abs(s.spin[i]); sum += a; if (a < 1e-12) zero++;
-          const r = Math.hypot(s.x[i], s.y[i]); if (r > 110 && r < 240) inB++;
+          const r = Math.hypot(s.x[i], s.y[i]);
+          if (r >= 100 && r <= 280) inB++; if (r < 90) fall++; if (r > 320) esc++;
+          sum += Math.abs(s.spin[i]);
         }
         HP.loadPreset('saturn', false);
-        return { fracZero: zero / (s.n - 1), mean: sum / (s.n - 1), inBand: inB / (s.n - 1), nan: s.hasNaN() };
+        return { inB: inB / (s.n - 1), fall: fall / (s.n - 1), esc: esc / (s.n - 1),
+                 mean: sum / (s.n - 1), nan: s.hasNaN() };
       });
-      add('ice.thermal-isolation',
-        !iso.nan && iso.fracZero >= 0.9 && iso.mean < 0.05 && iso.inBand >= 0.95,
-        `spin厳密0率=${(iso.fracZero * 100).toFixed(1)}%(≥90%) 平均|spin|=${iso.mean.toFixed(4)}(<0.05) 帯内率=${(iso.inBand * 100).toFixed(1)}%(≥95%)`);
+      add('behavior.saturnIce',
+        !iso.nan && iso.inB >= 0.95 && iso.fall <= 0.02 && iso.esc <= 0.05 && iso.mean < 0.5,
+        `t≈300: 帯内=${(iso.inB * 100).toFixed(1)}%(≥95%) 落下=${(iso.fall * 100).toFixed(1)}%(≤2%) 散逸=${(iso.esc * 100).toFixed(1)}%(≤5%) 平均|spin|=${iso.mean.toFixed(3)}(<0.5)`);
     }
   } else {
     console.log('SKIP ice.*(対象に saturnIce なし — beta 昇格まで対象外)');
