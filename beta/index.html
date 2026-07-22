@@ -1080,6 +1080,30 @@ const BUILTIN_PRESETS = [
   ],
   overlays:{rotationCurve:false,tempHistogram:false,field:false} },
 
+{ id:"saturnMulti", name:"土星の環(多層)", emoji:"💍", group:"天体の物語",
+  description:"実環の C環(薄)/B環(濃)/カッシーニ間隙/A環 を模した多層構成の実験(4-31 多層土星スプリント)。現実の間隙は衛星ミマスの2:1共鳴が維持しているが、本デモは共鳴衛星なしの統制実験 — 中心星の空間引きずり(kFrame=1・A8)による A環の内側漂流で、間隙は t≈300 で狭まり t≈600 までに閉じる(実測: 19→5→閉。閉じる過程まで含めて QA が機械検証)。「維持機構が無いと間隙は残れない」ことを見せる教材で、C<B<A の帯の順序と密度コントラストは保たれ、衝突円形化(T3)で環自体は崩れない。物理は 🪐(実験)と同一。",
+  en:{name:"Saturn's Rings (Multi-Layer)", description:"A multi-layer experiment mimicking the real C ring (faint) / B ring (dense) / Cassini division / A ring (4-31 sprint). In reality Mimas' 2:1 resonance maintains the gap; this is a control run without the resonant moon — frame dragging by the central star (kFrame=1, A8) makes the A ring drift inward, so the gap narrows by t≈300 and closes by t≈600 (measured 19→5→closed; the closing process itself is machine-checked). A lesson that a gap cannot persist without its maintaining mechanism. Band order C<B<A and the density contrast survive, and collisional circularization (T3) keeps the ring itself intact. Physics identical to 🪐."},
+  activeParams:["muF","kFrame","kappaS"],
+  camera:{scale:340}, world:{boundary:"none",size:0},
+  physics:{G:1, D0:2, kFrame:1, q:2, kRep:1.2, muF:0.2, gammaN:0.15, kappaS:0.08, Kt:3600,
+    cLight:60, bM:1, etaRad:0, pRad:4, gravityX:0, gravityY:0, geoPN:0, lambdaPN:1, pnAlpha:1.5, radiusScale:1.8, softening:2, timeScale:3},
+  bodies:[ // 4-31 多層土星スプリント(2026-07-23): 実環の比率を R_中心=100 相当へ概算スケール。
+           // C 108–134(薄 n50)/ B 136–182(濃 n170)/ カッシーニ間隙 182–198(空)/ A 198–218(n80)。
+           // 実測較正(t0/t300/t600): 間隙幅 = A環内縁(p5)−B環外縁(p95)= 19.2 → 4.9 → −18(閉鎖)。
+           // A環は E6′ で強く内側漂流(中央 207→175)する一方 B環外縁は粘性拡散で +5 — 共鳴衛星の
+           // 維持機構なしでは間隙は閉じる、を見せる統制実験として QA behavior.saturnMulti が
+           // 「途中まで間隙が残り(t150)・帯の順序と安定が保たれる(t600)」を帯メンバーシップで検証。
+           // physics は 🪐(実験)の較正値をそのまま使う。粒子の並び: 0=中心, 1..50=C, 51..220=B, 221..300=A
+    {type:"single", m:1500, x:0,y:0, vx:0,vy:0, spin:0.05, pinned:true},
+    {type:"ring", n:50, cx:0,cy:0, rIn:108,rOut:134, mMin:0.01,mMax:0.03,
+     spinMin:0,spinMax:0.25, vMode:"kepler", aroundMass:1500, omega:0, vNoise:0.01, direction:1, pinned:false},
+    {type:"ring", n:170, cx:0,cy:0, rIn:136,rOut:182, mMin:0.01,mMax:0.03,
+     spinMin:0,spinMax:0.25, vMode:"kepler", aroundMass:1500, omega:0, vNoise:0.01, direction:1, pinned:false},
+    {type:"ring", n:80, cx:0,cy:0, rIn:198,rOut:218, mMin:0.01,mMax:0.03,
+     spinMin:0,spinMax:0.25, vMode:"kepler", aroundMass:1500, omega:0, vNoise:0.01, direction:1, pinned:false}
+  ],
+  overlays:{rotationCurve:false,tempHistogram:false,field:false} },
+
 { id:"binary", name:"連星系と周連星円盤", emoji:"⭐", group:"天体の物語",
   description:"等質量の2恒星が共通重心を回り、その外側を軽い天体群が公転する。単独星とは異なる時間変動する重力場(E4)が外側の軌道を乱し、恒星の運動は空間を引きずって円盤へ伝わる(A5)。kFrame=0.5→0、D0=10→100の比較(A/B比較モード)がおすすめ。",
   en:{name:"Binary Stars & Circumbinary Disk", description:"Two equal-mass stars orbit their common barycenter while a ring of light bodies circles outside. The time-varying gravitational field — unlike a single star — perturbs the outer orbits. Try A/B-comparing kFrame 0.5 vs 0 or D0 10 vs 100."},
