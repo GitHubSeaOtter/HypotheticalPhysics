@@ -21,6 +21,12 @@
 - QA 追加: `zonal.order-convergence`(J2k 打ち切りの単調減衰)・`zonal.radial-monotonic`・
   `zonal.dt-convergence`(dt/2 で Δϖ/周 一致)・`zonal.ai-open`・`zonal.d68-preset`・
   `zonal.peri-ui`。結果 JSON に CI run ID を記録(第13次 P2-2 後半)
+- **💍「土星の環(多層)」新設**(4-31 多層土星スプリント)— C(薄)/B(濃)/カッシーニ間隙/A の
+  多層構成。共鳴衛星なしの統制実験として間隙の存続を QA `behavior.saturnMulti` が
+  移動窓の最小密度で t≈600 まで機械検証
+- **QA 追加(第14次裁定 P2-1/P2-2)**: `draft.restore`/`draft.discard`(自動ドラフトの
+  復元・破棄 E2E)・`pwa.sw-fail-ui`(SW 登録失敗の表示)。結果 JSON に
+  sha/ref/headRef/baseRef を追加(PR 実行の合成マージ SHA 対策)
 
 ## v1.28(2026-07-22)— beta からルート昇格
 

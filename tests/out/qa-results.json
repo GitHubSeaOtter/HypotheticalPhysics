@@ -1,12 +1,16 @@
 {
- "commit": "b65a74336d146f9bda658cbc3eca65437cca30ff",
- "date": "2026-07-22T14:34:55.040Z",
+ "commit": "6ea83e75f21637c3da698abcebb50d142a510c23",
+ "date": "2026-07-22T16:06:43.740Z",
  "fast": false,
  "target": "index.html",
  "run": {
   "githubRunId": null,
   "runNumber": null,
-  "attempt": null
+  "attempt": null,
+  "sha": null,
+  "ref": null,
+  "headRef": null,
+  "baseRef": null
  },
  "env": {
   "node": "v22.22.2",
@@ -455,7 +459,7 @@
   {
    "id": "cache.rays-field",
    "pass": true,
-   "detail": "描画40回の間に 光線再積分=0(≤2) フィールド再計算=0(≤2)"
+   "detail": "描画43回の間に 光線再積分=0(≤2) フィールド再計算=0(≤2)"
   },
   {
    "id": "divergence.undo",

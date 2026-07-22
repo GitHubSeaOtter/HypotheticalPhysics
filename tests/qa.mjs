@@ -1207,6 +1207,36 @@ if (!FAST) {
       const nsOk = cacheKeys.length >= 1 && cacheKeys.every(k => k.startsWith(cachePfx));
       add('pwa.sw-offline', sw.ready === true && assetsOk && nsOk && offlineOk,
         `SW=${sw.ready} アセット200=${assetsOk} 名前空間${cachePfx}*=${nsOk}(${cacheKeys.join(',')}) オフライン再読込=${offlineOk}`);
+
+      // ---- 第14次裁定 P2-1(2026-07-23): SW 登録失敗の表示 — sw.js を 404 にして notify を検査 ----
+      const hasSwFailUi = await page.evaluate(() => typeof window.restoreDraft === 'function');
+      if (hasSwFailUi) {
+        const srv2 = http.createServer((req, res) => {
+          try {
+            let up = decodeURIComponent(new URL(req.url, 'http://x').pathname);
+            if (up.endsWith('/')) up += 'index.html';
+            if (up.endsWith('/sw.js')) { res.writeHead(404); res.end(); return; }
+            const fp = path.join(ROOT, up);
+            if (!fp.startsWith(ROOT) || !fs.existsSync(fp) || fs.statSync(fp).isDirectory()) { res.writeHead(404); res.end(); return; }
+            res.writeHead(200, { 'content-type': MIME[path.extname(fp)] || 'application/octet-stream' });
+            res.end(fs.readFileSync(fp));
+          } catch { res.writeHead(500); res.end(); }
+        });
+        await new Promise(r => srv2.listen(0, '127.0.0.1', r));
+        const ctx2 = await browser.newContext();
+        const p2 = await ctx2.newPage();
+        let failTxt = false;
+        try {
+          await p2.goto(`http://127.0.0.1:${srv2.address().port}${basePath}`, { waitUntil: 'load' });
+          failTxt = await p2.waitForFunction(() => {
+            const el = document.getElementById('notice');
+            return (el && el.style.display !== 'none' && /Service Worker/.test(el.textContent)) ? el.textContent : false;
+          }, null, { timeout: 15000 }).then(h => h.jsonValue()).catch(() => false);
+        } finally { await ctx2.close(); srv2.close(); }
+        add('pwa.sw-fail-ui', !!failTxt, `登録失敗の通知表示=${!!failTxt}(${String(failTxt || '').slice(0, 32)}…)`);
+      } else {
+        console.log('SKIP pwa.sw-fail-ui(対象に SW 失敗表示なし)');
+      }
     }
     if (!FAST) {
       // 🪐(実験)の長時間安定。原仮定者裁定(2026-07-22 昇格便): フルQAでの安定確認は
@@ -1236,6 +1266,87 @@ if (!FAST) {
   }
 }
 
+// ---- 8d2) 4-31 多層土星スプリント(2026-07-23): 💍 saturnMulti の間隙閉鎖と帯構造 ----
+// 共鳴衛星なしの統制実験: 間隙は途中まで残り(t150)、A環の E6′ 内側漂流で t600 までに閉じる。
+// 帯メンバーシップ(bodies 順で 1..50=C, 51..220=B, 221..300=A が固定)による percentile 計測 —
+// E6′ 漂流・集団呼吸(コヒーレント・エピサイクル周期≈300)に不変。実測較正(2026-07-23・決定論):
+// gap = A環p5 − B環p95: t0=19.2 / t150=15.9 / t300=4.9 / t600=−18.2(閉)。t600 の帯中央値 C/B/A =
+// 107.4/137.1/174.7(順序保持)・帯内99.7%・落下0・散逸0。
+{
+  const hasMulti = await page.evaluate(() =>
+    !!(window.HP && HP.allPresets().some(p => p.id === 'saturnMulti')));
+  if (hasMulti && !FAST) {
+    const mm = await page.evaluate(() => {
+      HP.loadPreset('saturnMulti', false);
+      const s = HP.sim;
+      const band = (lo, hi) => { const rs = []; for (let i = lo; i <= hi; i++) rs.push(Math.hypot(s.x[i], s.y[i])); rs.sort((a, b) => a - b); return rs; };
+      const q = (rs, p) => rs[Math.floor(p * (rs.length - 1))];
+      const metric = () => {
+        const C = band(1, 50), B = band(51, 220), A = band(221, 300);
+        let fall = 0, esc = 0, inB = 0;
+        for (let i = 1; i < s.n; i++) { const r = Math.hypot(s.x[i], s.y[i]);
+          if (r < 85) fall++; if (r > 320) esc++; if (r >= 95 && r <= 290) inB++; }
+        return { gap: q(A, .05) - q(B, .95), Cp50: q(C, .5), Bp50: q(B, .5), Ap50: q(A, .5),
+          inB: inB / (s.n - 1), fall: fall / (s.n - 1), esc: esc / (s.n - 1), nan: s.hasNaN() };
+      };
+      for (let k = 0; k < 9375; k++) s.step(0.016);
+      const m150 = metric();
+      for (let k = 0; k < 28125; k++) s.step(0.016);
+      const m600 = metric();
+      HP.loadPreset('saturn', false);
+      return { m150, m600 };
+    });
+    add('behavior.saturnMulti',
+      !mm.m150.nan && !mm.m600.nan &&
+      mm.m150.gap >= 8 &&                                          // t150: 間隙が帯として残る
+      mm.m600.gap < 8 &&                                           // t600: 共鳴なしでは閉じる(統制実験の主張)
+      (mm.m600.Bp50 - mm.m600.Cp50) >= 10 && (mm.m600.Ap50 - mm.m600.Bp50) >= 10 &&  // 帯順序 C<B<A 保持
+      mm.m600.inB >= 0.95 && mm.m600.fall <= 0.02 && mm.m600.esc <= 0.05,
+      `間隙 t150=${mm.m150.gap.toFixed(1)}(≥8) t600=${mm.m600.gap.toFixed(1)}(<8=閉鎖) ` +
+      `帯中央値 C/B/A=${mm.m600.Cp50.toFixed(0)}/${mm.m600.Bp50.toFixed(0)}/${mm.m600.Ap50.toFixed(0)}(順序保持) ` +
+      `帯内=${(mm.m600.inB * 100).toFixed(1)}% 落下=${(mm.m600.fall * 100).toFixed(1)}% 散逸=${(mm.m600.esc * 100).toFixed(1)}%`);
+  } else if (!hasMulti) {
+    console.log('SKIP behavior.saturnMulti(対象に 💍多層版なし)');
+  }
+}
+
+// ---- 8e) 第14次裁定 P2-1(2026-07-23): 自動ドラフトの復元/破棄 E2E(専用ページで再読込を伴う)----
+{
+  // 注: file:// では sessionStorage が再読込を跨いで保持されない(Chromium の origin 扱い)ため、
+  // 復元経路(read → remove → confirm → 適用/破棄)は restoreDraft() を直接呼んで検証する。
+  // 再読込を跨ぐ保持は http(s) 実行時のブラウザ仕様(実機チェックリストで確認)。
+  const hasDraft = await page.evaluate(() => typeof window.restoreDraft === 'function');
+  if (hasDraft) {
+    const dp = await browser.newPage();
+    let dlg = 0, acceptMode = true;
+    dp.on('dialog', d => { dlg++; if (acceptMode) d.accept(); else d.dismiss(); });
+    await dp.goto(INDEX);
+    await dp.waitForFunction(() => !!window.HP);
+    const rest = await dp.evaluate(() => {
+      sessionStorage.setItem('hp_draft', JSON.stringify(
+        { presetId: 'saturn', physics: Object.assign({}, HP.sim.params, { muF: 0.77 }), cameraScale: 123, at: 'qa' }));
+      window.restoreDraft();
+      return { muF: HP.sim.params.muF,
+        badge: (document.getElementById('dirtyBadge') || { style: {} }).style.display,
+        draft: !!sessionStorage.getItem('hp_draft') };
+    });
+    add('draft.restore', dlg === 1 && Math.abs(rest.muF - 0.77) < 1e-12 && rest.badge === 'inline-block' && rest.draft,
+      `confirm=${dlg} muF=${rest.muF}(0.77) badge=${rest.badge} 未保存として再保存=${rest.draft}`);
+    acceptMode = false;
+    const disc = await dp.evaluate(() => {
+      sessionStorage.setItem('hp_draft', JSON.stringify(
+        { presetId: 'saturn', physics: Object.assign({}, HP.sim.params, { muF: 0.55 }), cameraScale: 99, at: 'qa2' }));
+      window.restoreDraft();
+      return { muF: HP.sim.params.muF, draft: sessionStorage.getItem('hp_draft') };
+    });
+    add('draft.discard', dlg === 2 && Math.abs(disc.muF - 0.77) < 1e-12 && !disc.draft,
+      `confirm=${dlg} muF=${disc.muF}(0.55 は不適用・直前値 0.77 のまま) 下書き消去=${!disc.draft}`);
+    await dp.close();
+  } else {
+    console.log('SKIP draft.*(対象に自動ドラフトなし)');
+  }
+}
+
 add('page.no-errors', pageErrors.length === 0, pageErrors.slice(0, 3).join(' | '));
 await browser.close();
 
@@ -1249,9 +1360,12 @@ try { playwrightVersion = JSON.parse(fs.readFileSync(path.join(ROOT, 'node_modul
 fs.writeFileSync(path.join(OUT_DIR, 'qa-results.json'), JSON.stringify({
   commit, date: new Date().toISOString(), fast: FAST,
   target: TARGET,  // P2: 検査対象(beta 検証時に結果JSONを取り違えないため)
-  // 第13次裁定 P2-2 後半(保留分の実施): CI run の追跡メタ(ローカル実行時は null)
+  // 第13次裁定 P2-2 後半+第14次 P2-2(2026-07-23): CI run の追跡メタ(ローカル実行時は null)。
+  // PR 実行では commit が合成マージ SHA になるため、ref/headRef/baseRef で照合できるようにする
   run: { githubRunId: process.env.GITHUB_RUN_ID || null, runNumber: process.env.GITHUB_RUN_NUMBER || null,
-         attempt: process.env.GITHUB_RUN_ATTEMPT || null },
+         attempt: process.env.GITHUB_RUN_ATTEMPT || null, sha: process.env.GITHUB_SHA || null,
+         ref: process.env.GITHUB_REF || null, headRef: process.env.GITHUB_HEAD_REF || null,
+         baseRef: process.env.GITHUB_BASE_REF || null },
   env: { node: process.version, playwright: playwrightVersion, platform: `${process.platform}/${process.arch}` },
   total: results.length, failed: results.filter(r => !r.pass).length, pass, results,
 }, null, 1));
