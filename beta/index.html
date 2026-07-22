@@ -134,6 +134,21 @@
   #helpBody{font-size:calc(12.5px*var(--uz,1));line-height:1.75;}
   #helpBody h4{margin:12px 0 4px;font-size:calc(13px*var(--uz,1));color:var(--acc);}
   #helpBody p{margin:4px 0;}
+  /* ===== 横画面レイアウト(4-35 裁定: タブレット・PC 想定)=====
+     landscape かつ幅 900px 以上で、キャンバス左・操作列/タブ/パネル右の2カラムに組み替える。
+     スマホの横持ち(幅 900px 未満)は従来の縦積みのまま。DOM 順は不変で CSS のみ —
+     #canvasWrap は ResizeObserver 監視済みなので列替えでもキャンバス解像度は追随する。 */
+  @media (orientation:landscape) and (min-width:900px){
+    #app{display:grid;grid-template-columns:minmax(0,1fr) clamp(320px,36vw,420px);
+      grid-template-rows:auto auto auto minmax(0,1fr);
+      grid-template-areas:"hd hd" "cv tp" "cv tb" "cv pn";}
+    header{grid-area:hd;}
+    #canvasWrap{grid-area:cv;min-height:0;border-right:1px solid var(--line);}
+    #transport{grid-area:tp;border-top:none;}
+    nav#tabs{grid-area:tb;}
+    /* パネルは右カラム残り高さをすべて使う(縦積み時の 50vh 上限は解除) */
+    #panel{grid-area:pn;max-height:none;min-height:0;border-top:1px solid var(--line);}
+  }
 </style>
 </head>
 <body>

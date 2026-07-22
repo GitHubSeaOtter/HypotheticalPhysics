@@ -1347,6 +1347,41 @@ if (!FAST) {
   }
 }
 
+// ---- 4-35 裁定(2026-07-23 第11便): 横画面レイアウト(タブレット・PC 想定)----
+// landscape かつ幅 900px 以上で、キャンバス左・操作列/タブ/パネル右の2カラム(CSS grid)へ
+// 組み替わることを 1024×768 で検査。ルート版は機能ゲートで SKIP(v1.29 昇格で自動有効化)。
+{
+  const html = fs.readFileSync(path.join(ROOT, TARGET), 'utf8');
+  if (/@media \(orientation:landscape\) and \(min-width:900px\)/.test(html)) {
+    const ctxL = await browser.newContext({ viewport: { width: 1024, height: 768 } });
+    const lp = await ctxL.newPage();
+    await lp.goto(INDEX, { waitUntil: 'load' });
+    await lp.waitForFunction(() => !!window.HP);
+    const r = await lp.evaluate(() => {
+      const app = document.getElementById('app');
+      const grid = getComputedStyle(app).display === 'grid';
+      const cw = document.getElementById('canvasWrap').getBoundingClientRect();
+      const tabs = document.getElementById('tabs').getBoundingClientRect();
+      document.querySelector('nav#tabs button').click();   // タブを開く
+      const panel = document.getElementById('panel');
+      const pr = panel.getBoundingClientRect();
+      return { grid, side: tabs.left >= cw.right - 1, cwW: Math.round(cw.width), cwH: Math.round(cw.height),
+        open: panel.classList.contains('open'), panelRight: pr.left >= cw.right - 1,
+        panelTall: pr.height > 300 };   // 縦積み時の 50vh 上限が解除され右カラム残り高さへ伸びる
+    });
+    // 幅 900px 未満(スマホ横持ち・縦持ち)は従来レイアウトのままであることも確認
+    await lp.setViewportSize({ width: 390, height: 844 });
+    const flex = await lp.evaluate(() =>
+      getComputedStyle(document.getElementById('app')).display === 'flex');
+    await ctxL.close();
+    add('ui.landscape', r.grid && r.side && r.open && r.panelRight && r.panelTall && r.cwH > 600 && flex,
+      `grid=${r.grid} 2カラム=${r.side} キャンバス=${r.cwW}×${r.cwH} パネル右=${r.panelRight} ` +
+      `パネル高>300=${r.panelTall} 縦積み復帰(390px)=${flex}`);
+  } else {
+    console.log('SKIP ui.landscape(対象に横画面レイアウトなし)');
+  }
+}
+
 add('page.no-errors', pageErrors.length === 0, pageErrors.slice(0, 3).join(' | '));
 await browser.close();
 
