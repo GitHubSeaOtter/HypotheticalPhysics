@@ -1453,31 +1453,41 @@ if (!FAST) {
         `帯中央値=${bl.d360.C.toFixed(0)}/${bl.d360.B.toFixed(0)}/${bl.d360.A.toFixed(0)} ` +
         `剛体回転との帯中央値差(t150)=${dMax.toFixed(2)}(≤8)`);
 
-      // ---- 第14便: 🌍 空洞実験 — 月周回粒子の束縛維持と、空洞/中実の軌道差 ----
-      const hm = await page.evaluate(() => {
-        const run = (mcr) => {
-          HP.loadPreset('earthMoon', false);
-          const s = HP.sim;
-          s.coreMR[1] = mcr; s.updateRadii();
-          for (let k = 0; k < 9375; k++) s.step(0.016);   // t150
-          let bound = 0; const pos = [];
-          for (let i = 2; i < s.n; i++) {
-            const dm = Math.hypot(s.x[i] - s.x[1], s.y[i] - s.y[1]);
-            if (dm <= 60) bound++;
-            pos.push(s.x[i], s.y[i]);
-          }
-          return { bound: bound / (s.n - 2), pos, nan: s.hasNaN() };
-        };
-        const hollow = run(-0.5), solid = run(0.5);
-        let diff = 0;
-        for (let k = 0; k < hollow.pos.length; k++) diff = Math.max(diff, Math.abs(hollow.pos[k] - solid.pos[k]));
+      // ---- 第15便: 🌍 地球と月(公転版)— 円軌道の維持と同期自転(潮汐固定)の安定 ----
+      // 実測較正(2026-07-23): v=1.063×軟化ケプラー値・ω=0.013931(T=451)・spin月=ω。
+      // 4.4周で半径 179.8〜180.1(ドリフト0.16%)・同期誤差 0.31°/周。QA は2周(t≈900)で
+      // 半径±2%・同期誤差≤2°/周・地球コア属性・NaNなしを検査。
+      const em = await page.evaluate(() => {
+        HP.loadPreset('earthMoon', false);
+        const s = HP.sim;
+        const core = { mcr: s.coreMR[0], scr: s.coreSR[0], spinM: s.spin[1] };
+        let rMin = 1e9, rMax = 0, phi = 0;
+        let prev = Math.atan2(s.y[1] - s.y[0], s.x[1] - s.x[0]);
+        for (let k = 0; k < 56250; k++) {   // t=900 ≒ 2周
+          s.step(0.016);
+          const rr = Math.hypot(s.x[1] - s.x[0], s.y[1] - s.y[0]);
+          if (rr < rMin) rMin = rr; if (rr > rMax) rMax = rr;
+          const a = Math.atan2(s.y[1] - s.y[0], s.x[1] - s.x[0]);
+          let d = a - prev; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI;
+          phi += d; prev = a;
+        }
+        const orbits = phi / (2 * Math.PI);
+        const syncErrDeg = Math.abs(s.rotA[1] - phi) * 180 / Math.PI;
+        const out = { ...core, rMin, rMax, orbits, syncPerOrbit: syncErrDeg / orbits,
+          omMeas: phi / 900, nan: s.hasNaN() };
         HP.loadPreset('saturn', false);
-        return { hb: hollow.bound, sb: solid.bound, hnan: hollow.nan, snan: solid.nan, diff };
+        return out;
       });
-      add('core.hollow',
-        !hm.hnan && !hm.snan && hm.hb >= 0.9 && hm.sb >= 0.9 && hm.diff > 0.5,
-        `🌍 t≈150: 束縛率 空洞=${(hm.hb * 100).toFixed(0)}%/中実=${(hm.sb * 100).toFixed(0)}%(≥90%) ` +
-        `空洞vs中実の軌道差=${hm.diff.toFixed(1)}(>0.5=符号反転が効いている) NaNなし=true`);
+      const emSpinRel = Math.abs(em.spinM - em.omMeas) / em.omMeas;
+      add('behavior.earthMoon',
+        !em.nan && Math.abs(em.mcr - 0.33) < 1e-6 && Math.abs(em.scr - 1.05) < 1e-6 &&   // Float32格納の丸め許容
+        em.rMin >= 180 * 0.98 && em.rMax <= 180 * 1.02 &&        // 円軌道が ±2% で維持
+        em.orbits > 1.5 &&                                        // 2周走行の確認
+        em.syncPerOrbit <= 2 &&                                   // 潮汐固定: 同期誤差 ≤2°/周
+        emSpinRel < 0.05,                                         // spin月 ≈ 実測 ω(±5%)
+        `🌍 t≈900(${em.orbits.toFixed(2)}周): r=${em.rMin.toFixed(1)}〜${em.rMax.toFixed(1)}(180±2%) ` +
+        `同期誤差=${em.syncPerOrbit.toFixed(2)}°/周(≤2) spin月/ω実測 相対差=${(emSpinRel * 100).toFixed(1)}%(<5%) ` +
+        `地球コア mc/m=${em.mcr}/sc/s=${em.scr} NaNなし=${!em.nan}`);
     }
   } else {
     console.log('SKIP core.*(対象に主星2層なし)');

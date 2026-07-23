@@ -1079,8 +1079,8 @@ const BUILTIN_PRESETS = [
   // 「同一初期配置での姉妹比較」になる(id 由来の別シードでは冷スタート過渡の谷が
   // t≈360 に当たる実現があり、安定 QA の t360 短縮と干渉した — 実測 2026-07-23)
   seed:1501780989,
-  description:"主星にコア(質量比 mc/m=0.18)を持たせた 🪐 の姉妹版(第14便で比率仕様へ — 元になる数値をそのまま使える様に、m は総質量 1500 のまま)。コア質量比 18% は Cassini 後の重元素集中の推定(≈17地球質量/95地球質量)、コア半径比 Rc/R=42% は希薄コア(半径の約1/2)の推定に対応。sc/s はコアスピン比で、剛体回転(sc/s=1)なら単層と厳密等価 — 差動分だけが ω += (mc/m)·s·(sc/s−1)·f(Rc,d) としてコア核 Rc から追加の空間引きずり(A8)に効く(既定 sc/s=1.05 は教材用に差を強調した仮定値。地震学的推定は ≈1.01)。コアスピンは熱・散逸(T3/E10′)と切り離された固定内部回転源(反作用で変化しない外部拘束)であり、閉じた2層天体ではなく統制実験である点に注意。中心天体をタップして mc/m・sc/s を編集: sc/s=10(高速コア)・sc/s<0(逆回転コア)・mc/m<0(空洞 — 🌍 を参照)・A/B比較で kFrame=1 vs 0 などが見どころ。氷粒の衝突円形化(T3)は 🪐 と同一。",
-  en:{name:"Saturn's Rings (Two-Layer Primary)", description:"Sister sample of 🪐 whose primary has a core specified by ratios (14th shipment): m stays the total mass 1500, the core mass ratio mc/m=0.18 matches post-Cassini estimates of heavy-element concentration (≈17 of 95 Earth masses), and Rc/R=42% matches the dilute core extending to roughly half the radius. sc/s is the core spin ratio: rigid rotation (sc/s=1) is exactly equivalent to the single-layer body, and only the differential part adds frame dragging (A8) through the smaller core kernel: ω += (mc/m)·s·(sc/s−1)·f(Rc,d). The default sc/s=1.05 exaggerates the contrast for teaching (seismology suggests ≈1.01). The core spin is a fixed internal rotation source decoupled from heat and dissipation (T3/E10′) — a controlled experiment, not a closed two-layer body. Tap the central body to edit mc/m and sc/s: try sc/s=10 (fast core), sc/s<0 (counter-rotating core), mc/m<0 (hollow — see 🌍), or A/B-compare kFrame 1 vs 0. Icy-grain circularization (T3) is identical to 🪐."},
+  description:"主星にコア(質量比 mc/m=0.18)を持たせた 🪐 の姉妹版(第14便で比率仕様へ — 元になる数値をそのまま使える様に、m は総質量 1500 のまま)。コア質量比 18% は Cassini 後の重元素集中の推定(≈17地球質量/95地球質量)、コア半径比 Rc/R=42% は希薄コア(半径の約1/2)の推定に対応。sc/s はコアスピン比で、剛体回転(sc/s=1)なら単層と厳密等価 — 差動分だけが ω += (mc/m)·s·(sc/s−1)·f(Rc,d) としてコア核 Rc から追加の空間引きずり(A8)に効く(既定 sc/s=1.05 は教材用に差を強調した仮定値。地震学的推定は ≈1.01)。コアスピンは熱・散逸(T3/E10′)と切り離された固定内部回転源(反作用で変化しない外部拘束)であり、閉じた2層天体ではなく統制実験である点に注意。中心天体をタップして mc/m・sc/s を編集: sc/s=10(高速コア)・sc/s<0(逆回転コア)・mc/m<0(空洞 — 殻に質量集中し差動引きずりの符号が反転する思考実験)・A/B比較で kFrame=1 vs 0 などが見どころ。氷粒の衝突円形化(T3)は 🪐 と同一。",
+  en:{name:"Saturn's Rings (Two-Layer Primary)", description:"Sister sample of 🪐 whose primary has a core specified by ratios (14th shipment): m stays the total mass 1500, the core mass ratio mc/m=0.18 matches post-Cassini estimates of heavy-element concentration (≈17 of 95 Earth masses), and Rc/R=42% matches the dilute core extending to roughly half the radius. sc/s is the core spin ratio: rigid rotation (sc/s=1) is exactly equivalent to the single-layer body, and only the differential part adds frame dragging (A8) through the smaller core kernel: ω += (mc/m)·s·(sc/s−1)·f(Rc,d). The default sc/s=1.05 exaggerates the contrast for teaching (seismology suggests ≈1.01). The core spin is a fixed internal rotation source decoupled from heat and dissipation (T3/E10′) — a controlled experiment, not a closed two-layer body. Tap the central body to edit mc/m and sc/s: try sc/s=10 (fast core), sc/s<0 (counter-rotating core), mc/m<0 (a hollow shell — the differential drag flips sign), or A/B-compare kFrame 1 vs 0. Icy-grain circularization (T3) is identical to 🪐."},
   activeParams:["kFrame","muF","kappaS"],
   camera:{scale:340}, world:{boundary:"none",size:0},
   physics:{G:1, D0:2, kFrame:1, q:2, kRep:1.2, muF:0.2, gammaN:0.15, kappaS:0.08, Kt:3600,
@@ -1102,23 +1102,22 @@ const BUILTIN_PRESETS = [
   ],
   overlays:{rotationCurve:false,tempHistogram:false,field:false} },
 
-{ id:"earthMoon", name:"地球と月(空洞実験)", emoji:"🌍", group:"天体の物語",
-  description:"「もし月が空洞だったら」の思考実験(第14便・コア質量比の負値=空洞の実演)。地球(中心・固定)と月(固定)のまわりを小粒子が周回する。月はコア質量比 mc/m=−0.5 — 質量が殻に集中し、内側は負質量の空洞、という2層表現。重力(E4)は総質量しか見ないため、外からは空洞かどうか重力では見分けられない(シェル定理の類似)。しかし空間引きずり(A8)の差動項 ω += (mc/m)·s·(sc/s−1)·f(Rc,d) は mc/m の符号に感応する — 月をタップして mc/m を +0.5(中実の高密度核)に変えると、月周回粒子への引きずりの向きが反転し、軌跡(線)の近点移動の向きが変わる。A/B比較で mc/m=−0.5 vs +0.5 を並べるのがおすすめ。地球と月は位置を固定した展示系(外部拘束)。",
-  en:{name:"Earth & Hollow Moon", description:"A thought experiment: what if the Moon were hollow? (14th shipment — demonstrating negative core-mass ratio.) Small particles orbit the Moon, with Earth fixed at the center and the Moon fixed on its station. The Moon has core mass ratio mc/m=−0.5: its mass concentrates in a shell around a negative-mass cavity. Gravity (E4) only sees the total mass, so from outside you cannot tell a hollow body from a solid one by gravity alone (a shell-theorem analogue). But the differential frame-dragging term (A8), ω += (mc/m)·s·(sc/s−1)·f(Rc,d), is sensitive to the SIGN of mc/m — tap the Moon and set mc/m to +0.5 (a dense solid core): the drag on the Moon's satellites reverses and the apsidal drift of their trails flips direction. Try A/B-comparing mc/m=−0.5 vs +0.5. Earth and Moon are pinned (external constraint, exhibit system)."},
-  activeParams:["kFrame","G","muF"],
-  camera:{scale:260}, world:{boundary:"none",size:0},
-  physics:{G:1, D0:2, kFrame:1, q:2, kRep:0, muF:0.1, gammaN:0.1, kappaS:0, Kt:10000,
-    cLight:60, bM:1, etaRad:0, pRad:4, gravityX:0, gravityY:0, geoPN:0, lambdaPN:1, pnAlpha:1.5, radiusScale:1.2, softening:2, timeScale:3},
-  bodies:[ // 第14便(2026-07-23 原仮定者指示): コア質量比の負値=空洞のサンプル(例: 地球と月で
-           // 月が空洞)。月は mc/m=−0.5(殻集中)・s=0.25・sc/s=3 — 差動項 (mc/m)·s·(sc/s−1) の
-           // 振幅は掃引で較正(2026-07-23: m=120/s=0.25/sc/s=3/環12-24 → t150 束縛 空洞98%・
-           // 中実100%・軌道差150。旧 m=80/s=0.3/sc/s=4/環14-26 は空洞50%で散逸過多)。
-           // 符号が mc/m で反転し、月周回粒子の近点移動の向きが変わる(重力では見分けられない)。
-           // 地球・月は pinned の展示系(統制実験)。粒子の並び: 0=地球, 1=月, 2..41=月周回粒子
-    {type:"single", m:1000, x:0,y:0, vx:0,vy:0, spin:0.1, pinned:true},
-    {type:"single", m:120, coreMR:-0.5, coreSR:3, x:200,y:0, vx:0,vy:0, spin:0.25, pinned:true},
-    {type:"ring", n:40, cx:200,cy:0, rIn:12,rOut:24, mMin:0.01,mMax:0.02,
-     spinMin:0,spinMax:0, vMode:"kepler", aroundMass:120, omega:0, vNoise:0.005, direction:1, pinned:false}
+{ id:"earthMoon", name:"地球と月", emoji:"🌍", group:"天体の物語",
+  description:"月が地球のまわりを公転する二体デモ(第15便で公転版に再設計)。質量比は現実どおり m月/m地球=0.0123。月は同期自転 — spin を公転角速度 ω=0.01393 に一致させてあり、スポーク(車輪の輻)の同じ面が常に地球を向き続ける(潮汐固定)。地球は2層コア(mc/m=0.33 ≈ 現実の核質量比・sc/s=1.05)を持ち、タップして sc/s を変えると空間引きずり(A8)経由で月軌道への効きが変わる。円軌道速度は E6′ 込みの実測較正 v=1.063×ケプラー値(Plummer軟化込み)— 4周で半径ドリフト0.16%・同期誤差0.31°/周を機械検証(QA behavior.earthMoon)。地球の自転(0.05)は E6′ 安定域に収めた較正値 — 現実の比(月の27.32倍)では引きずり風が重力(E4)を超えて軌道が崩れる(実測記録・ロードマップ参照)。kFrame=0 とのA/B比較で引きずりの寄与が分離できる。地球は pinned の展示系。Kt=10000 は物理対応ロック Kt=c²/G の成立値。",
+  en:{name:"Earth & Moon", description:"A two-body demo with the Moon orbiting Earth (redesigned as an orbiting version in the 15th shipment). The mass ratio is the real one: mMoon/mEarth=0.0123. The Moon rotates synchronously \u2014 its spin equals the orbital angular velocity \u03c9=0.01393, so the same face of its spoke wheel always points at Earth (tidal locking). Earth has a two-layer core (mc/m=0.33 \u2248 the real core-mass fraction, sc/s=1.05); tap it and change sc/s to see how the frame dragging (A8) acting on the Moon's orbit changes. The circular-orbit speed is calibrated with E6\u2032 included: v=1.063\u00d7 the (Plummer-softened) Keplerian value \u2014 radius drift 0.16% and sync error 0.31\u00b0/orbit over 4 orbits, machine-verified (QA behavior.earthMoon). Earth's spin (0.05) is calibrated into the E6\u2032-stable regime \u2014 at the real ratio (27.32\u00d7 the Moon's) the drag wind exceeds gravity (E4) and the orbit collapses (measured; see roadmap). A/B-compare with kFrame=0 to isolate the drag contribution. Earth is pinned (exhibit system). Kt=10000 satisfies the GR-calibration lock Kt=c\u00b2/G."},
+  activeParams:["kFrame","G","D0"],
+  camera:{scale:220}, world:{boundary:"none",size:0},
+  physics:{G:1, D0:2, kFrame:1, q:2, kRep:0, muF:0, gammaN:0, kappaS:0, Kt:10000,
+    cLight:100, bM:1, etaRad:0, pRad:4, gravityX:0, gravityY:0, geoPN:0, lambdaPN:1, pnAlpha:1.5, radiusScale:1.5, softening:2, timeScale:5},
+  bodies:[ // 第15便(2026-07-23 原仮定者指示): 月を公転させ、地球にコアを設定し、自転の同期が
+           // 安定するパラメータを実測較正。掃引結果(2026-07-23): v=1.063×√[G·M·D²/(D²+ε²)^1.5]
+           // =2.5053(D=180)で 4.4周の半径 179.8〜180.1(ドリフト0.16%)・実測 ω=0.013931
+           // (T=451)・spin月=ω の同期誤差 0.31°/周・NaN なし。地球自転は 0.05(E6′ 安定域 —
+           // 現実比 27.32×ω では回転フレーム風が実効重力の約2倍になり月が墜落する・実測)。
+           // 自由二体(地球非固定)は E6′ の D0 リザーバ移譲で重心が漂流(t2000 で 150)するため
+           // 地球 pinned の展示系とした。粒子の並び: 0=地球(2層コア), 1=月(同期自転)
+    {type:"single", m:1000, coreMR:0.33, coreSR:1.05, x:0,y:0, vx:0,vy:0, spin:0.05, pinned:true},
+    {type:"single", m:12.3, x:180,y:0, vx:0,vy:2.5053, spin:0.013931, pinned:false}
   ],
   overlays:{rotationCurve:false,tempHistogram:false,field:false,trail:true} },
 
