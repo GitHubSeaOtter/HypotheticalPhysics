@@ -1245,15 +1245,15 @@ if (!FAST) {
       }
     }
     if (!FAST) {
-      // 🪐(実験)の長時間安定。原仮定者裁定(2026-07-22 昇格便): フルQAでの安定確認は
-      // **t=600 まで**とする(QA 時間短縮 — 昇格でルートも実行対象になるため)。
-      // 初期配置は t=300〜600 の実測分布に再設計済み(第4便)。t≈600(37500步)まで回し、
+      // 🪐(実験)の長時間安定。原仮定者裁定(2026-07-22 昇格便)で t=600、
+      // **第14便(2026-07-23 原仮定者指示)で t=360 へ短縮**(QA 時間短縮)。
+      // 初期配置は t=300〜600 の実測分布に再設計済み(第4便)。t≈360(22500步)まで回し、
       // 帯保持・落下/散逸ゼロ・NaNなしを検査。t≈1200 の較正実測(第4便: 帯内99.3%・落下1粒・
       // 散逸0)は裁定記録第12次 §6.1 に記録済み — 閾値は t1200 時と同一のまま流用。
       const iso = await page.evaluate(() => {
         HP.loadPreset('saturn', false);
         const s = HP.sim;
-        for (let k = 0; k < 37500; k++) s.step(0.016);
+        for (let k = 0; k < 22500; k++) s.step(0.016);
         let inB = 0, fall = 0, esc = 0, sum = 0;
         for (let i = 1; i < s.n; i++) {
           const r = Math.hypot(s.x[i], s.y[i]);
@@ -1265,7 +1265,7 @@ if (!FAST) {
       });
       add('behavior.saturnExp',
         !iso.nan && iso.inB >= 0.95 && iso.fall <= 0.02 && iso.esc <= 0.05 && iso.mean < 0.5,
-        `t≈600: 帯内=${(iso.inB * 100).toFixed(1)}%(≥95%) 落下=${(iso.fall * 100).toFixed(1)}%(≤2%) 散逸=${(iso.esc * 100).toFixed(1)}%(≤5%) 平均|spin|=${iso.mean.toFixed(3)}(<0.5)`);
+        `t≈360: 帯内=${(iso.inB * 100).toFixed(1)}%(≥95%) 落下=${(iso.fall * 100).toFixed(1)}%(≤2%) 散逸=${(iso.esc * 100).toFixed(1)}%(≤5%) 平均|spin|=${iso.mean.toFixed(3)}(<0.5)`);
     }
   } else {
     console.log('SKIP ice./saturnExp(対象に 🪐実験版なし)');
@@ -1309,46 +1309,52 @@ if (!FAST) {
   }
 }
 
-// ---- 第12便(2026-07-23): 主星2層(coreM/coreSpin)のエンジン検証 ----
-// 設計: mEff=m+coreM を慣性・重力源・W 源のすべてで一貫使用(R=radiusScale·√|mEff|)。
-// 第13便(第15次レビュー P1): コア引きずりは差動形 ω = s·f(R,d) + (coreM/mEff)·(sc−s)·f(Rc,d)。
-// sc=コアの絶対角速度。剛体回転(sc=s)は単層と厳密等価(新しい錨)。coreM=0 は寄与なし・
-// hasCore=false の宇宙は分岐ごと素通り(m=0 高速化)。負質量は実験用に受理(0除算保護のみ)。
+// ---- 第12〜14便(2026-07-23): 主星2層(比率仕様 coreMR/coreSR)のエンジン検証 ----
+// 第14便: m は総質量のまま、coreMR=コア質量比 mc/m(既定0・負値=空洞)・coreSR=コアスピン比
+// sc/s(既定1=剛体回転=単層と厳密等価 — 錨)。差動形 ω += coreMR·s·(coreSR−1)·f(Rc,d)、
+// Rc=radiusScale·√|coreMR·m|。coreMR=0 は寄与なし・hasCore=false の宇宙は分岐ごと素通り(高速化)。
+// 負質量は実験用に受理(0除算保護のみ)。
 {
-  const hasCoreEng = await page.evaluate(() => !!(window.HP && HP.sim && HP.sim.coreM));
+  const hasCoreEng = await page.evaluate(() => !!(window.HP && HP.sim && HP.sim.coreMR));
   if (hasCoreEng) {
     const r = await page.evaluate(() => {
       const out = {};
       HP.loadPreset('saturnLayered', false);
       let s = HP.sim;
-      out.preset = { n: s.n, coreM: s.coreM[0], coreSpin: +s.coreSpin[0].toFixed(4),
+      out.preset = { n: s.n, coreMR: +s.coreMR[0].toFixed(4), coreSR: +s.coreSR[0].toFixed(4),
         R0: s.R[0], Rc0: s.Rc[0], hasCore: s.hasCore };
       // 🪐 基準走行(600步)
       HP.loadPreset('saturn', false); s = HP.sim;
       for (let k = 0; k < 600; k++) s.step(0.016);
       const base = [s.x[10], s.y[10], s.spin[10]];
-      // (a) 剛体回転(sc=s)の2層分割は厳密等価(第13便: 差動形の錨)
+      // (a) 剛体回転(coreSR=1)はコア比を与えても厳密等価(比率仕様の錨)
       HP.loadPreset('saturn', false); s = HP.sim;
-      s.m[0] = 600; s.coreM[0] = 900; s.coreSpin[0] = s.spin[0]; s.updateRadii();
-      const mEff0 = s.mEff[0];
+      s.coreMR[0] = 0.6; s.updateRadii();   // coreSR は既定 1 のまま
+      const m0 = s.m[0], hcRigid = s.hasCore;
       for (let k = 0; k < 600; k++) s.step(0.016);
-      const eqSplit = Math.abs(s.x[10] - base[0]) + Math.abs(s.y[10] - base[1]) + Math.abs(s.spin[10] - base[2]);
-      // (a2) コア静止(sc=0)は引きずりが弱まり単層と差が出る(差動形の方向性確認)
+      const eqRigid = Math.abs(s.x[10] - base[0]) + Math.abs(s.y[10] - base[1]) + Math.abs(s.spin[10] - base[2]);
+      // (a2) コア静止(coreSR=0)は引きずりが弱まり単層と差が出る(差動形の方向性確認)
       HP.loadPreset('saturn', false); s = HP.sim;
-      s.m[0] = 600; s.coreM[0] = 900; s.coreSpin[0] = 0; s.updateRadii();
+      s.coreMR[0] = 0.6; s.coreSR[0] = 0; s.updateRadii();
       for (let k = 0; k < 600; k++) s.step(0.016);
       const restDx = Math.abs(s.x[10] - base[0]) + Math.abs(s.y[10] - base[1]);
-      // (b) coreM=0 なら coreSpin を与えても寄与なし(hasCore=false の高速パス)
+      // (b) coreMR=0 なら coreSR を変えても寄与なし(hasCore=false の高速パス)
       HP.loadPreset('saturn', false); s = HP.sim;
-      s.coreSpin[0] = 5; s.updateRadii();
+      s.coreSR[0] = 5; s.updateRadii();
       const hcZero = s.hasCore;
       for (let k = 0; k < 600; k++) s.step(0.016);
       const eqZero = Math.abs(s.x[10] - base[0]) + Math.abs(s.y[10] - base[1]);
-      // (c) コアスピンは効く(sc=2 で軌道が変わる・NaNなし)
+      // (c) 高速コア(coreSR=20)は効く(軌道が変わる・NaNなし)
       HP.loadPreset('saturn', false); s = HP.sim;
-      s.m[0] = 600; s.coreM[0] = 900; s.coreSpin[0] = 2; s.updateRadii();
+      s.coreMR[0] = 0.6; s.coreSR[0] = 20; s.updateRadii();
       for (let k = 0; k < 600; k++) s.step(0.016);
       const effDx = Math.abs(s.x[10] - base[0]), effNan = s.hasNaN();
+      // (c2) 空洞(coreMR<0)は符号が反転した別の軌道になる(中実と異なる・NaNなし)
+      HP.loadPreset('saturn', false); s = HP.sim;
+      s.coreMR[0] = -0.6; s.coreSR[0] = 20; s.updateRadii();
+      for (let k = 0; k < 600; k++) s.step(0.016);
+      const holNan = s.hasNaN();
+      const holDx = Math.abs(s.x[10] - base[0]);
       // (d) 負質量が NaN を出さない
       HP.loadPreset('saturn', false); s = HP.sim;
       s.m[5] = -1; s.updateRadii();
@@ -1356,18 +1362,21 @@ if (!FAST) {
       for (let k = 0; k < 400; k++) s.step(0.016);
       const negNan = s.hasNaN();
       HP.loadPreset('saturn', false);
-      return { ...out, mEff0, eqSplit, restDx, hcZero, eqZero, effDx, effNan, negR, negNan };
+      return { ...out, m0, hcRigid, eqRigid, restDx, hcZero, eqZero, effDx, effNan, holDx, holNan, negR, negNan };
     });
     add('core.twolayer',
-      r.preset.n === 301 && r.preset.coreM === 270 && r.preset.hasCore &&
+      r.preset.n === 301 && r.preset.coreMR === 0.18 && Math.abs(r.preset.coreSR - 1.05) < 1e-6 &&
+      r.preset.hasCore &&
       Math.abs(r.preset.R0 - 1.8 * Math.sqrt(1500)) < 0.01 && Math.abs(r.preset.Rc0 - 1.8 * Math.sqrt(270)) < 0.01 &&
-      r.mEff0 === 1500 && r.eqSplit < 1e-9 &&
+      r.m0 === 1500 && r.hcRigid && r.eqRigid < 1e-9 &&
       r.restDx > 1e-4 &&                                       // コア静止は引きずり低下で差が出る
       r.hcZero === false && r.eqZero < 1e-9 &&
-      r.effDx > 0.1 && !r.effNan && r.negR > 0 && !r.negNan,
-      `🎯 n=${r.preset.n} core=${r.preset.coreM}/${r.preset.coreSpin} R/Rc=${r.preset.R0.toFixed(1)}/${r.preset.Rc0.toFixed(1)} ` +
-      `剛体回転分割等価=${r.eqSplit}(<1e-9) コア静止差=${r.restDx.toExponential(1)}(>1e-4) ` +
-      `mc=0高速パス=${!r.hcZero}&等価${r.eqZero} sc=2効果=${r.effDx.toFixed(2)}(>0.1) 負質量NaNなし=${!r.negNan}`);
+      r.effDx > 0.1 && !r.effNan && r.holDx > 0.1 && !r.holNan &&
+      r.negR > 0 && !r.negNan,
+      `🎯 n=${r.preset.n} mc/m=${r.preset.coreMR} sc/s=${r.preset.coreSR} R/Rc=${r.preset.R0.toFixed(1)}/${r.preset.Rc0.toFixed(1)} ` +
+      `剛体回転(sc/s=1)等価=${r.eqRigid}(<1e-9) コア静止差=${r.restDx.toExponential(1)}(>1e-4) ` +
+      `mc/m=0高速パス=${!r.hcZero}&等価${r.eqZero} 高速コア効果=${r.effDx.toFixed(2)}(>0.1) ` +
+      `空洞NaNなし=${!r.holNan}&効果=${r.holDx.toFixed(2)} 負質量NaNなし=${!r.negNan}`);
 
     // ---- 第12便: A/B比較中の粒子編集(選択・パネル表示・編集先の分離・負値/コア編集)----
     const e = await page.evaluate(() => {
@@ -1381,13 +1390,13 @@ if (!FAST) {
       beM.value = '-2'; beM.dispatchEvent(new Event('change'));
       const mB = HP.ab().simB.m[3], mA_after_B = HP.sim.m[3];
       const beMc = document.getElementById('beMc');
-      beMc.value = '50'; beMc.dispatchEvent(new Event('change'));
-      const mcB = HP.ab().simB.coreM[3], mcA = HP.sim.coreM[3], hcB = HP.ab().simB.hasCore;
+      beMc.value = '0.5'; beMc.dispatchEvent(new Event('change'));
+      const mcB = HP.ab().simB.coreMR[3], mcA = HP.sim.coreMR[3], hcB = HP.ab().simB.hasCore;
       HP.selectBody(3, 'A');
       const titleA = document.getElementById('beTitle').textContent;
       const beSc = document.getElementById('beSc');
       beSc.value = '1.5'; beSc.dispatchEvent(new Event('change'));
-      const scA = HP.sim.coreSpin[3], scB = HP.ab().simB.coreSpin[3];
+      const scA = HP.sim.coreSR[3], scB = HP.ab().simB.coreSR[3];
       HP.abStop();
       const hiddenAfter = HP.selInfo().selIdx === -1;
       HP.loadPreset('saturn', false);
@@ -1396,22 +1405,23 @@ if (!FAST) {
     add('core.ab-body-edit',
       e.shownB && /\(B\)/.test(e.titleB) && /\(A\)/.test(e.titleA) &&
       e.mB === -2 && Math.abs(e.mA_after_B - (-2)) > 1e-6 &&        // B編集はAに波及しない
-      e.mcB === 50 && e.mcA === 0 && e.hcB === true &&
-      e.scA === 1.5 && Math.abs(e.scB - 1.5) > 1e-6 &&              // A編集はBに波及しない
+      e.mcB === 0.5 && e.mcA === 0 && e.hcB === true &&
+      e.scA === 1.5 && e.scB === 1 &&                               // A編集はBに波及しない(既定 sc/s=1)
       e.hiddenAfter,
       `B選択表示=${e.shownB}(${e.titleB}) m(B)=-2受理=${e.mB === -2} A非波及=true ` +
-      `mc(B)=50/mc(A)=${e.mcA} sc(A)=1.5/sc(B)=${e.scB.toFixed(2)} 終了で選択解除=${e.hiddenAfter}`);
+      `mc/m(B)=0.5/mc/m(A)=${e.mcA} sc/s(A)=1.5/sc/s(B)=${e.scB}(既定1) 終了で選択解除=${e.hiddenAfter}`);
 
-    // ---- 第13便(第15次レビュー P1): 🎯 既定値の長時間安定+差動効果の有界性 ----
-    // 既定(χ=1.05・差動形)で t≈600 の帯保持・落下/散逸ゼロ近傍を、🪐 と同じ閾値で機械検証。
-    // 併せて sc=0(コア静止)との帯中央値差が t150 で有界(≤8)であることを確認 —
+    // ---- 第13〜14便: 🎯 既定値の長時間安定+差動効果の有界性 ----
+    // 既定(sc/s=1.05・差動形)で t≈360 の帯保持・落下/散逸ゼロ近傍を、🪐 と同じ閾値で機械検証
+    // (第14便・原仮定者指示: 環の安定確認は t=360 まで — QA 時間短縮)。
+    // 併せて剛体回転(sc/s=1)との帯中央値差が t150 で有界(≤8)であることを確認 —
     // 差動形の効果が「説明どおり小さい摂動」の規模に収まっている事の数値化。
     if (!FAST) {
       const bl = await page.evaluate(() => {
-        const run = (zeroSc, steps) => {
+        const run = (rigidSc, steps) => {
           HP.loadPreset('saturnLayered', false);
           const s = HP.sim;
-          if (zeroSc) { s.coreSpin[0] = 0; }
+          if (rigidSc) { s.coreSR[0] = 1; }
           const med = (lo, hi) => { const rs = []; for (let i = lo; i <= hi; i++) rs.push(Math.hypot(s.x[i], s.y[i])); rs.sort((a, b) => a - b); return rs[Math.floor(0.5 * (rs.length - 1))]; };
           const metric = () => {
             let inB = 0, fall = 0, esc = 0, sum = 0;
@@ -1428,20 +1438,46 @@ if (!FAST) {
           }
           return out;
         };
-        const def = run(false, [9375, 28125]);   // t150, t600
-        const noc = run(true, [9375]);           // t150(コア静止)
+        const def = run(false, [9375, 13125]);   // t150, t360
+        const noc = run(true, [9375]);           // t150(剛体回転 sc/s=1)
         HP.loadPreset('saturn', false);
-        return { d150: def[0], d600: def[1], z150: noc[0] };
+        return { d150: def[0], d360: def[1], z150: noc[0] };
       });
       const dMax = Math.max(Math.abs(bl.d150.C - bl.z150.C), Math.abs(bl.d150.B - bl.z150.B), Math.abs(bl.d150.A - bl.z150.A));
       add('behavior.saturnLayered',
-        !bl.d600.nan && bl.d600.inB >= 0.95 && bl.d600.fall <= 0.02 && bl.d600.esc <= 0.05 && bl.d600.mean < 0.5 &&
-        (bl.d600.B - bl.d600.C) > 5 && (bl.d600.A - bl.d600.B) > 5 &&   // 帯順序 C<B<A
+        !bl.d360.nan && bl.d360.inB >= 0.95 && bl.d360.fall <= 0.02 && bl.d360.esc <= 0.05 && bl.d360.mean < 0.5 &&
+        (bl.d360.B - bl.d360.C) > 5 && (bl.d360.A - bl.d360.B) > 5 &&   // 帯順序 C<B<A
         dMax <= 8,
-        `t≈600: 帯内=${(bl.d600.inB * 100).toFixed(1)}%(≥95%) 落下=${(bl.d600.fall * 100).toFixed(1)}%(≤2%) ` +
-        `散逸=${(bl.d600.esc * 100).toFixed(1)}%(≤5%) 平均|spin|=${bl.d600.mean.toFixed(3)}(<0.5) ` +
-        `帯中央値=${bl.d600.C.toFixed(0)}/${bl.d600.B.toFixed(0)}/${bl.d600.A.toFixed(0)} ` +
-        `sc=0との帯中央値差(t150)=${dMax.toFixed(2)}(≤8)`);
+        `t≈360: 帯内=${(bl.d360.inB * 100).toFixed(1)}%(≥95%) 落下=${(bl.d360.fall * 100).toFixed(1)}%(≤2%) ` +
+        `散逸=${(bl.d360.esc * 100).toFixed(1)}%(≤5%) 平均|spin|=${bl.d360.mean.toFixed(3)}(<0.5) ` +
+        `帯中央値=${bl.d360.C.toFixed(0)}/${bl.d360.B.toFixed(0)}/${bl.d360.A.toFixed(0)} ` +
+        `剛体回転との帯中央値差(t150)=${dMax.toFixed(2)}(≤8)`);
+
+      // ---- 第14便: 🌍 空洞実験 — 月周回粒子の束縛維持と、空洞/中実の軌道差 ----
+      const hm = await page.evaluate(() => {
+        const run = (mcr) => {
+          HP.loadPreset('earthMoon', false);
+          const s = HP.sim;
+          s.coreMR[1] = mcr; s.updateRadii();
+          for (let k = 0; k < 9375; k++) s.step(0.016);   // t150
+          let bound = 0; const pos = [];
+          for (let i = 2; i < s.n; i++) {
+            const dm = Math.hypot(s.x[i] - s.x[1], s.y[i] - s.y[1]);
+            if (dm <= 60) bound++;
+            pos.push(s.x[i], s.y[i]);
+          }
+          return { bound: bound / (s.n - 2), pos, nan: s.hasNaN() };
+        };
+        const hollow = run(-0.5), solid = run(0.5);
+        let diff = 0;
+        for (let k = 0; k < hollow.pos.length; k++) diff = Math.max(diff, Math.abs(hollow.pos[k] - solid.pos[k]));
+        HP.loadPreset('saturn', false);
+        return { hb: hollow.bound, sb: solid.bound, hnan: hollow.nan, snan: solid.nan, diff };
+      });
+      add('core.hollow',
+        !hm.hnan && !hm.snan && hm.hb >= 0.9 && hm.sb >= 0.9 && hm.diff > 0.5,
+        `🌍 t≈150: 束縛率 空洞=${(hm.hb * 100).toFixed(0)}%/中実=${(hm.sb * 100).toFixed(0)}%(≥90%) ` +
+        `空洞vs中実の軌道差=${hm.diff.toFixed(1)}(>0.5=符号反転が効いている) NaNなし=true`);
     }
   } else {
     console.log('SKIP core.*(対象に主星2層なし)');
