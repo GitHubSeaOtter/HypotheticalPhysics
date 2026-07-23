@@ -169,9 +169,9 @@
       <!-- 第12便: m は負値も受理するため inputmode=text(iOS の数字キーパッドに「−」が無い) -->
       <div class="beRow"><label id="beLm">m</label><input type="text" id="beM" inputmode="text" autocomplete="off">
         <label id="beLs">s</label><input type="text" id="beS" inputmode="text" autocomplete="off"></div>
-      <!-- 第12便: 主星2層 — コアの質量 mc とスピン sc(既定0=単層。粒子ごとに編集可) -->
-      <div class="beRow"><label id="beLmc">mc</label><input type="text" id="beMc" inputmode="text" autocomplete="off">
-        <label id="beLsc">sc</label><input type="text" id="beSc" inputmode="text" autocomplete="off"></div>
+      <!-- 第14便: 主星2層(比率)— コア質量比 mc/m(既定0・負値=空洞)とコアスピン比 sc/s(既定1) -->
+      <div class="beRow"><label id="beLmc" style="min-width:34px">mc/m</label><input type="text" id="beMc" inputmode="text" autocomplete="off">
+        <label id="beLsc" style="min-width:30px">sc/s</label><input type="text" id="beSc" inputmode="text" autocomplete="off"></div>
       <div class="beRow"><label>vx</label><input type="text" id="beVx" inputmode="text" autocomplete="off">
         <label>vy</label><input type="text" id="beVy" inputmode="text" autocomplete="off"></div>
       <div class="beRow"><label id="beLp" style="flex:1">固定(pinned)</label><input type="checkbox" id="bePin"></div>
@@ -1075,19 +1075,20 @@ const BUILTIN_PRESETS = [
   overlays:{rotationCurve:false,tempHistogram:false,field:false} },
 
 { id:"saturnLayered", name:"土星の環(主星2層)", emoji:"🎯", group:"天体の物語",
-  description:"主星をコア(mc=270)と外層(m=1230)の2層に分けた 🪐 の姉妹版(第12便・第13便=第15次レビューで較正)。総質量は1500で 🪐 と同一 — 重力も見かけの半径も変わらない。コア質量比18%は Cassini 後の重元素集中の推定(≈17地球質量/95地球質量)、コア半径比 Rc/R=42% は希薄コア(半径の約1/2)の推定に対応。sc は「コアの絶対角速度」で、剛体回転(sc=s)なら単層と厳密等価 — 差動分 (sc−s) だけが質量重み mc/M とコア核 Rc から追加の空間引きずり(A8)として効く(既定 χ=sc/s=1.05 は教材用に差を強調した仮定値。地震学的推定は χ≈1.01)。コアスピンは熱・散逸(T3/E10′)と切り離された固定内部回転源(反作用で変化しない外部拘束)であり、閉じた2層天体ではなく統制実験である点に注意。中心天体をタップして mc/sc を編集: sc=0.5(高速コア)・sc<0(逆回転コア)・A/B比較で kFrame=1 vs 0 などが見どころ。氷粒の衝突円形化(T3)は 🪐 と同一。",
-  en:{name:"Saturn's Rings (Two-Layer Primary)", description:"Sister sample of 🪐 with the primary split into a core (mc=270) and an outer layer (m=1230); calibrated after the 15th external review. Total mass stays 1500 — gravity and apparent radius are unchanged. The 18% core-mass fraction matches post-Cassini estimates of heavy-element concentration (≈17 of 95 Earth masses) and Rc/R=42% matches the dilute core extending to roughly half the radius. sc is the core's absolute angular velocity: rigid rotation (sc=s) is exactly equivalent to the single-layer body, and only the differential part (sc−s), weighted by mc/M, adds frame dragging (A8) through the smaller core kernel Rc. The default χ=sc/s=1.05 exaggerates the contrast for teaching (seismology suggests χ≈1.01). The core spin is a fixed internal rotation source decoupled from heat and dissipation (T3/E10′) — a controlled experiment, not a closed two-layer body. Tap the central body to edit mc/sc: try sc=0.5 (fast core), sc<0 (counter-rotating core), or A/B-compare kFrame 1 vs 0. Icy-grain circularization (T3) is identical to 🪐."},
+  description:"主星にコア(質量比 mc/m=0.18)を持たせた 🪐 の姉妹版(第14便で比率仕様へ — 元になる数値をそのまま使える様に、m は総質量 1500 のまま)。コア質量比 18% は Cassini 後の重元素集中の推定(≈17地球質量/95地球質量)、コア半径比 Rc/R=42% は希薄コア(半径の約1/2)の推定に対応。sc/s はコアスピン比で、剛体回転(sc/s=1)なら単層と厳密等価 — 差動分だけが ω += (mc/m)·s·(sc/s−1)·f(Rc,d) としてコア核 Rc から追加の空間引きずり(A8)に効く(既定 sc/s=1.05 は教材用に差を強調した仮定値。地震学的推定は ≈1.01)。コアスピンは熱・散逸(T3/E10′)と切り離された固定内部回転源(反作用で変化しない外部拘束)であり、閉じた2層天体ではなく統制実験である点に注意。中心天体をタップして mc/m・sc/s を編集: sc/s=10(高速コア)・sc/s<0(逆回転コア)・mc/m<0(空洞 — 🌍 を参照)・A/B比較で kFrame=1 vs 0 などが見どころ。氷粒の衝突円形化(T3)は 🪐 と同一。",
+  en:{name:"Saturn's Rings (Two-Layer Primary)", description:"Sister sample of 🪐 whose primary has a core specified by ratios (14th shipment): m stays the total mass 1500, the core mass ratio mc/m=0.18 matches post-Cassini estimates of heavy-element concentration (≈17 of 95 Earth masses), and Rc/R=42% matches the dilute core extending to roughly half the radius. sc/s is the core spin ratio: rigid rotation (sc/s=1) is exactly equivalent to the single-layer body, and only the differential part adds frame dragging (A8) through the smaller core kernel: ω += (mc/m)·s·(sc/s−1)·f(Rc,d). The default sc/s=1.05 exaggerates the contrast for teaching (seismology suggests ≈1.01). The core spin is a fixed internal rotation source decoupled from heat and dissipation (T3/E10′) — a controlled experiment, not a closed two-layer body. Tap the central body to edit mc/m and sc/s: try sc/s=10 (fast core), sc/s<0 (counter-rotating core), mc/m<0 (hollow — see 🌍), or A/B-compare kFrame 1 vs 0. Icy-grain circularization (T3) is identical to 🪐."},
   activeParams:["kFrame","muF","kappaS"],
   camera:{scale:340}, world:{boundary:"none",size:0},
   physics:{G:1, D0:2, kFrame:1, q:2, kRep:1.2, muF:0.2, gammaN:0.15, kappaS:0.08, Kt:3600,
     cLight:60, bM:1, etaRad:0, pRad:4, gravityX:0, gravityY:0, geoPN:0, lambdaPN:1, pnAlpha:1.5, radiusScale:1.8, softening:2, timeScale:3},
-  bodies:[ // 第12便(2026-07-23 原仮定者指示): 主星2層 — コアの m と spin を追加パラメータとし、
-           // coreM=0 を既定とすることで既存データと整合(mEff=m+coreM・R=radiusScale·√|mEff|)。
-           // 第13便(第15次レビュー 推奨A): m=1230+mc=270(重元素集中≈18%・Rc/R=42.4%)。
-           // sc=0.0525(χ=1.05 — 教材既定。現実の地震学的推定は χ≈1.01)。差動形なので
-           // 環付近への追加引きずりは (mc/M)·(sc−s)·f(Rc,d) ≈ +0.1% と説明に整合する規模。
-           // 環の帯・physics は 🪐(実験)と同一 — sc=s で 🪐 と厳密等価(QA core.twolayer)。
-    {type:"single", m:1230, coreM:270, coreSpin:0.0525, x:0,y:0, vx:0,vy:0, spin:0.05, pinned:true},
+  bodies:[ // 第12〜14便(2026-07-23 原仮定者指示): 主星2層は比率仕様 — m は総質量のまま
+           // (元になる数値をそのまま使える)、coreMR=mc/m(既定0・負値=空洞)・
+           // coreSR=sc/s(既定1=剛体回転=単層等価。コアは推測なので比率が調整し易い)。
+           // 値は第15次レビュー 推奨A: mc/m=0.18(重元素集中≈18%・Rc/R=√0.18=42.4%)・
+           // sc/s=1.05(教材既定。地震学的推定は ≈1.01)。差動形なので環付近への追加引きずりは
+           // (mc/m)·s·(sc/s−1)·f(Rc,d) ≈ +0.1% と説明に整合する規模。
+           // 環の帯・physics は 🪐(実験)と同一 — sc/s=1 で 🪐 と厳密等価(QA core.twolayer)。
+    {type:"single", m:1500, coreMR:0.18, coreSR:1.05, x:0,y:0, vx:0,vy:0, spin:0.05, pinned:true},
     {type:"ring", n:75, cx:0,cy:0, rIn:104,rOut:132, mMin:0.01,mMax:0.03,
      spinMin:0,spinMax:0.25, vMode:"kepler", aroundMass:1500, omega:0, vNoise:0.01, direction:1, pinned:false},
     {type:"ring", n:150, cx:0,cy:0, rIn:132,rOut:190, mMin:0.01,mMax:0.03,
@@ -1096,6 +1097,24 @@ const BUILTIN_PRESETS = [
      spinMin:0,spinMax:0.25, vMode:"kepler", aroundMass:1500, omega:0, vNoise:0.01, direction:1, pinned:false}
   ],
   overlays:{rotationCurve:false,tempHistogram:false,field:false} },
+
+{ id:"earthMoon", name:"地球と月(空洞実験)", emoji:"🌍", group:"天体の物語",
+  description:"「もし月が空洞だったら」の思考実験(第14便・コア質量比の負値=空洞の実演)。地球(中心・固定)と月(固定)のまわりを小粒子が周回する。月はコア質量比 mc/m=−0.5 — 質量が殻に集中し、内側は負質量の空洞、という2層表現。重力(E4)は総質量しか見ないため、外からは空洞かどうか重力では見分けられない(シェル定理の類似)。しかし空間引きずり(A8)の差動項 ω += (mc/m)·s·(sc/s−1)·f(Rc,d) は mc/m の符号に感応する — 月をタップして mc/m を +0.5(中実の高密度核)に変えると、月周回粒子への引きずりの向きが反転し、軌跡(線)の近点移動の向きが変わる。A/B比較で mc/m=−0.5 vs +0.5 を並べるのがおすすめ。地球と月は位置を固定した展示系(外部拘束)。",
+  en:{name:"Earth & Hollow Moon", description:"A thought experiment: what if the Moon were hollow? (14th shipment — demonstrating negative core-mass ratio.) Small particles orbit the Moon, with Earth fixed at the center and the Moon fixed on its station. The Moon has core mass ratio mc/m=−0.5: its mass concentrates in a shell around a negative-mass cavity. Gravity (E4) only sees the total mass, so from outside you cannot tell a hollow body from a solid one by gravity alone (a shell-theorem analogue). But the differential frame-dragging term (A8), ω += (mc/m)·s·(sc/s−1)·f(Rc,d), is sensitive to the SIGN of mc/m — tap the Moon and set mc/m to +0.5 (a dense solid core): the drag on the Moon's satellites reverses and the apsidal drift of their trails flips direction. Try A/B-comparing mc/m=−0.5 vs +0.5. Earth and Moon are pinned (external constraint, exhibit system)."},
+  activeParams:["kFrame","G","muF"],
+  camera:{scale:260}, world:{boundary:"none",size:0},
+  physics:{G:1, D0:2, kFrame:1, q:2, kRep:0, muF:0.1, gammaN:0.1, kappaS:0, Kt:10000,
+    cLight:60, bM:1, etaRad:0, pRad:4, gravityX:0, gravityY:0, geoPN:0, lambdaPN:1, pnAlpha:1.5, radiusScale:1.2, softening:2, timeScale:3},
+  bodies:[ // 第14便(2026-07-23 原仮定者指示): コア質量比の負値=空洞のサンプル(例: 地球と月で
+           // 月が空洞)。月は mc/m=−0.5(殻集中)・s=0.3・sc/s=4 — 差動項 (mc/m)·s·(sc/s−1) の
+           // 符号が mc/m で反転し、月周回粒子の近点移動の向きが変わる(重力では見分けられない)。
+           // 地球・月は pinned の展示系(統制実験)。粒子の並び: 0=地球, 1=月, 2..41=月周回粒子
+    {type:"single", m:1000, x:0,y:0, vx:0,vy:0, spin:0.1, pinned:true},
+    {type:"single", m:80, coreMR:-0.5, coreSR:4, x:200,y:0, vx:0,vy:0, spin:0.3, pinned:true},
+    {type:"ring", n:40, cx:200,cy:0, rIn:14,rOut:26, mMin:0.01,mMax:0.02,
+     spinMin:0,spinMax:0, vMode:"kepler", aroundMass:80, omega:0, vNoise:0.005, direction:1, pinned:false}
+  ],
+  overlays:{rotationCurve:false,tempHistogram:false,field:false,trail:true} },
 
 { id:"binary", name:"連星系と周連星円盤", emoji:"⭐", group:"天体の物語",
   description:"等質量の2恒星が共通重心を回り、その外側を軽い天体群が公転する。単独星とは異なる時間変動する重力場(E4)が外側の軌道を乱し、恒星の運動は空間を引きずって円盤へ伝わる(A5)。kFrame=0.5→0、D0=10→100の比較(A/B比較モード)がおすすめ。",
@@ -1251,12 +1270,13 @@ function validatePreset(obj){
         if(!needNum(["m","x","y","vx","vy","spin"])) return;
         if(typeof b.pinned!=="boolean"){ bad(at+".pinned(boolean)が必要"); return; }
         const o={type:"single", m:MASS(b.m,"m"), x:CO(b.x,"x"), y:CO(b.y,"y"), vx:VEL(b.vx,"vx"), vy:VEL(b.vy,"vy"), spin:SPN(b.spin,"spin"), pinned:b.pinned};
-        // 第12便: 主星2層 — コア質量・コアスピン(任意。既定0=単層と等価。mc は負値も受理)
-        if(b.coreM!==undefined || b.coreSpin!==undefined){
-          if(b.coreM!==undefined && !isNum(b.coreM)){ bad(at+".coreM が数値ではありません"); return; }
-          if(b.coreSpin!==undefined && !isNum(b.coreSpin)){ bad(at+".coreSpin が数値ではありません"); return; }
-          o.coreM=isNum(b.coreM)? wc(b.coreM,-5000,5000,"coreM") : 0;
-          o.coreSpin=isNum(b.coreSpin)? wc(b.coreSpin,-20,20,"coreSpin") : 0;
+        // 第14便: 主星2層(比率仕様)— coreMR=コア質量比 mc/m(既定0・負値=空洞〔殻集中〕)・
+        // coreSR=コアスピン比 sc/s(既定1=剛体回転=単層等価)
+        if(b.coreMR!==undefined || b.coreSR!==undefined){
+          if(b.coreMR!==undefined && !isNum(b.coreMR)){ bad(at+".coreMR が数値ではありません"); return; }
+          if(b.coreSR!==undefined && !isNum(b.coreSR)){ bad(at+".coreSR が数値ではありません"); return; }
+          o.coreMR=isNum(b.coreMR)? wc(b.coreMR,-1,1,"coreMR") : 0;
+          o.coreSR=isNum(b.coreSR)? wc(b.coreSR,-20,20,"coreSR") : 1;
         }
         // E13(第11次裁定 保留分の実施): AI生成・インポートへ zonal を開放。
         // 偶数次 J2〜J12 のみ受理し、|J|≤0.1・refR 1〜5000・calib 0〜2 にクランプする
@@ -1334,9 +1354,12 @@ function makeSim(){
     n:0, t:0, params:Object.assign({},DEFAULT_PHYSICS),
     world:{boundary:"none",size:0}, rays:null, overlays:{},
     m:null,x:null,y:null,vx:null,vy:null,spin:null,R:null, rotA:null,
-    // 第12便(2026-07-23): 主星2層 — コア質量・コアスピン(既定0=単層と厳密等価)。
-    // mEff=m+coreM(慣性・重力・W の実効質量)/ Rc=radiusScale·√|coreM|(コアの引きずり核半径)
-    coreM:null, coreSpin:null, mEff:null, Rc:null, rotAc:null, hasCore:false,
+    // 第12〜14便(2026-07-23): 主星2層 — 第14便で比率仕様へ(原仮定者指示: 元になる数値を
+    // そのまま使える様に・コアは推測なので比率が調整し易い)。m は総質量のまま、
+    // coreMR=コア質量比 mc/m(既定0。負値=空洞〔殻に質量集中〕)/ coreSR=コアスピン比 sc/s
+    // (既定1=剛体回転=単層と厳密等価)。Rc=radiusScale·√(|coreMR|·|m|)。mEff は m の
+    // 下限保護(|m|≥0.01)付き別名(負質量実験の0除算保護)
+    coreMR:null, coreSR:null, mEff:null, Rc:null, rotAc:null, hasCore:false,
     pinned:null, railR:null, railAng:null, railOmega:null, railCx:null, railCy:null,
     uPx:null,uPy:null,hasU:null, tau:null, ax:null,ay:null, sumW:null,uAx:null,uAy:null, ds:null,
     dpx:null,dpy:null, pairD:null,
@@ -1347,7 +1370,8 @@ function makeSim(){
     S.n=n;
     const F=()=>new Float32Array(n);
     S.m=F();S.x=F();S.y=F();S.vx=F();S.vy=F();S.spin=F();S.R=F();S.rotA=F();
-    S.coreM=F();S.coreSpin=F();S.mEff=F();S.Rc=F();S.rotAc=F();   // 主星2層(第12便)
+    S.coreMR=F();S.coreSR=F();S.mEff=F();S.Rc=F();S.rotAc=F();   // 主星2層(第12〜14便)
+    S.coreSR.fill(1);   // コアスピン比の既定は 1(剛体回転=単層等価)
     S.uPx=F();S.uPy=F();S.tau=F();S.ax=F();S.ay=F();S.sumW=F();S.uAx=F();S.uAy=F();S.ds=F();
     S.dpx=F();S.dpy=F();
     S.pairD=new Float32Array(Math.max(1,n*(n-1)/2)); // 対距離キャッシュ(E6′反作用パスで再利用)
@@ -1370,7 +1394,8 @@ function makeSim(){
     for(const b of preset.bodies){
       if(b.type==="single"){
         const o={m:b.m,x:b.x,y:b.y,vx:b.vx,vy:b.vy,spin:b.spin,pinned:b.pinned?1:0,railOmega:0,
-          coreM:b.coreM||0, coreSpin:b.coreSpin||0};   // 主星2層(第12便。既定0=単層と等価)
+          // 主星2層(第14便: 比率仕様)。coreMR=mc/m(既定0)・coreSR=sc/s(既定1)
+          coreMR:b.coreMR||0, coreSR:(b.coreSR===undefined?1:b.coreSR)};
         if(b.zonal) o.zonal=b.zonal;   // E13(第11次裁定): 扁平中心天体の帯状重力属性
         push(o); noteBig(o);
       } else if(b.type==="ring"){
@@ -1428,7 +1453,7 @@ function makeSim(){
     S.periDet=null; // 近点検出器は再構築でリセット(第11次裁定 保留分)
     P.forEach((o,i)=>{ S.m[i]=o.m; S.x[i]=o.x; S.y[i]=o.y; S.vx[i]=o.vx; S.vy[i]=o.vy;
       S.spin[i]=o.spin; S.pinned[i]=o.pinned; S.railOmega[i]=o.railOmega||0;
-      S.coreM[i]=o.coreM||0; S.coreSpin[i]=o.coreSpin||0;
+      S.coreMR[i]=o.coreMR||0; S.coreSR[i]=(o.coreSR===undefined?1:o.coreSR);
       if(o.railOmega){ S.railR[i]=o.railR; S.railAng[i]=o.railAng; S.railCx[i]=o.railCx; S.railCy[i]=o.railCy; }
       if(o.zonal) S.zonal={i, refR:o.zonal.refR, J:o.zonal.J, calib:(o.zonal.calib||1), _A:null};
     });
@@ -1438,26 +1463,27 @@ function makeSim(){
     S.resPx=0; S.resPy=0; S.resL=0; S.radE=0; S.radL=0;
     S.curveBins=null; S.tempLR=[0,0]; S.histT=[];
   };
-  S.updateRadii = function(){ // R_i = radiusScale·√|m_eff| (PHYSICS.md §2。第12便: m_eff=m+coreM)
+  S.updateRadii = function(){ // R_i = radiusScale·√|m| (PHYSICS.md §2)
     const rs=S.params.radiusScale;
     let hc=false;
     for(let i=0;i<S.n;i++){
-      const mt=S.m[i]+S.coreM[i];
-      // 実効質量の下限 ±0.01(慣性の除算保護。負質量は実験用に符号を保持 — 第12便)
+      const mt=S.m[i];   // 第14便: 比率仕様 — m は総質量そのもの(コアは m の内訳)
+      // 質量の下限 ±0.01(慣性の除算保護。負質量は実験用に符号を保持 — 第12便)
       S.mEff[i]=(Math.abs(mt)<0.01)? (mt<0? -0.01 : 0.01) : mt;
       S.R[i]=rs*Math.sqrt(Math.abs(S.mEff[i]));
-      S.Rc[i]=rs*Math.sqrt(Math.abs(S.coreM[i]));
-      if(S.coreM[i]!==0) hc=true;
+      S.Rc[i]=rs*Math.sqrt(Math.abs(S.coreMR[i]*S.mEff[i]));   // コア核半径(|mc|=|coreMR·m|)
+      if(S.coreMR[i]!==0) hc=true;
     }
-    S.hasCore=hc;   // コアなし(全 coreM=0)の宇宙は従来ループのまま(m=0 高速化)
+    S.hasCore=hc;   // コアなし(全 coreMR=0)の宇宙は従来ループのまま(高速化)
   };
   // 1サブステップ(PHYSICS.md v1.1 §5 数値スキーム: ①全対 → ②粒子 → ③反作用対 → ④位置)
   S.step = function(dt){
     const n=S.n, p=S.params;
     if(!n){ S.t+=dt; return; }
-    // 第12便: m は実効質量 mEff=m+coreM の別名(慣性・重力源・W 源のすべてで一貫使用 —
-    // 運動量・角運動量の恒等式は全用途一貫なら保存される。coreM=0 なら mEff=m で従来と厳密等価)
-    const {mEff:m,x,y,vx,vy,spin,R,pinned,ax,ay,sumW,uAx,uAy,ds,dpx,dpy,pairD,coreSpin,Rc}=S;
+    // 第12〜14便: m は下限保護(|m|≥0.01)付き別名 mEff を一貫使用(負質量実験の0除算保護。
+    // 第14便: 比率仕様 — m は総質量そのもので、コアは m の内訳。運動量・角運動量の恒等式は
+    // 全用途一貫なら保存される。coreMR=0(既定)なら従来と厳密等価)
+    const {mEff:m,x,y,vx,vy,spin,R,pinned,ax,ay,sumW,uAx,uAy,ds,dpx,dpy,pairD,coreMR,coreSR,Rc}=S;
     const hasCore=S.hasCore;
     const eps=p.softening, eps2=eps*eps, G=p.G, q=p.q, kRep=p.kRep,
           muF=p.muF, gammaN=p.gammaN, kappaS=p.kappaS, D0=p.D0, kFrame=p.kFrame,
@@ -1520,19 +1546,19 @@ function makeSim(){
         let omj=0, omi=0;
         if(sj!==0){ const tt=Rj/(Rj+d); omj = (q===2)? sj*tt*tt : sj*Math.pow(tt,q); }
         if(si!==0){ const tt=Ri/(Ri+d); omi = (q===2)? si*tt*tt : si*Math.pow(tt,q); }
-        if(hasCore){ // 主星2層(第12便。第13便=第15次レビュー P1 で差動形に修正):
-                     // coreSpin は「コアの絶対角速度」。剛体回転(sc=s)は単層と厳密等価で、
-                     // 差動分 (sc−s) だけが質量重み coreM/mEff とコア核 Rc から追加で効く:
-                     //   ω_frame = s·f(R,d) + (coreM/mEff)·(sc−s)·f(Rc,d)
-                     // 旧・加算形(ω += sc·f(Rc,d))は χ=1.05 でも環付近の引きずりを+71〜75%
-                     // にしてしまう説明齟齬があった(ChatGPT 第15次 §5.3 — 実測追認済み)。
-                     // coreM=0 は寄与なし。hasCore=false の宇宙はこの分岐ごと素通り(高速化)
-          const cmj=S.coreM[j];
-          if(cmj!==0 && Rc[j]>0){ const dsj=coreSpin[j]-sj;
-            if(dsj!==0){ const tt=Rc[j]/(Rc[j]+d); omj += (cmj/mj)*dsj*((q===2)? tt*tt : Math.pow(tt,q)); } }
-          const cmi=S.coreM[i];
-          if(cmi!==0 && Rc[i]>0){ const dsi=coreSpin[i]-si;
-            if(dsi!==0){ const tt=Rc[i]/(Rc[i]+d); omi += (cmi/mi)*dsi*((q===2)? tt*tt : Math.pow(tt,q)); } }
+        if(hasCore){ // 主星2層(第13便=差動形/第14便=比率仕様):
+                     // coreMR=コア質量比 mc/m(負値=空洞〔殻集中〕)・coreSR=コアスピン比 sc/s。
+                     // 剛体回転(coreSR=1)は単層と厳密等価で、差動分だけがコア核 Rc から効く:
+                     //   ω_frame = s·f(R,d) + coreMR·s·(coreSR−1)·f(Rc,d)
+                     // (= 第13便の (coreM/mEff)·(sc−s)·f(Rc,d) の比率表記。空洞 coreMR<0 は
+                     //  差動引きずりの符号が反転する)。coreMR=0 は寄与なし。
+                     // hasCore=false の宇宙はこの分岐ごと素通り(高速化)
+          const cmr=coreMR[j];
+          if(cmr!==0 && sj!==0 && Rc[j]>0){ const chi=coreSR[j];
+            if(chi!==1){ const tt=Rc[j]/(Rc[j]+d); omj += cmr*sj*(chi-1)*((q===2)? tt*tt : Math.pow(tt,q)); } }
+          const cmri=coreMR[i];
+          if(cmri!==0 && si!==0 && Rc[i]>0){ const chi=coreSR[i];
+            if(chi!==1){ const tt=Rc[i]/(Rc[i]+d); omi += cmri*si*(chi-1)*((q===2)? tt*tt : Math.pow(tt,q)); } }
         }
         uAx[i]+=wj*(vx[j]+omj*(-dy)); uAy[i]+=wj*(vy[j]+omj*(dx));
         uAx[j]+=wi*(vx[i]+omi*(dy));  uAy[j]+=wi*(vy[i]+omi*(-dx));
@@ -1726,7 +1752,7 @@ function makeSim(){
     const b=S.world;
     for(let i=0;i<n;i++){
       S.rotA[i]+=spin[i]*dt;   // v1.17: 表示用の累積回転角(大粒子のスポーク描画で回転方向を可視化)
-      if(hasCore && coreSpin[i]!==0) S.rotAc[i]+=coreSpin[i]*dt;   // 第12便: コアのスポーク角
+      if(hasCore && coreMR[i]!==0) S.rotAc[i]+=coreSR[i]*spin[i]*dt;   // コアのスポーク角(sc=coreSR·s)
       if(pinned[i]){ S.tauUpdate(i,dt); continue; }
       // 安全上限(発散防止): 速度100・スピン±40
       const vv2=vx[i]*vx[i]+vy[i]*vy[i];
@@ -2273,12 +2299,13 @@ function render(){
         ctx.lineTo(sx+Math.cos(a)*rr*0.92, sy+Math.sin(a)*rr*0.92); ctx.stroke(); }
       ctx.lineWidth=1;
     }
-    // 第12便: 主星2層 — コア(coreM≠0)を内側の暗い円+白スポークで可視化(表面との差動回転が見える)
-    if(sim.coreM[i]!==0 && rr>=7){
+    // 第12〜14便: 主星2層 — コア(coreMR≠0)を内側の暗い円+白スポークで可視化(差動回転が見える)。
+    // 空洞(coreMR<0)はさらに暗い「穴」として描く
+    if(sim.coreMR[i]!==0 && rr>=7){
       const rc=Math.max(3,Math.min(sim.Rc[i]*z,rr*0.92));
-      ctx.fillStyle="rgba(10,12,24,0.55)";
+      ctx.fillStyle=(sim.coreMR[i]<0)? "rgba(3,4,10,0.85)" : "rgba(10,12,24,0.55)";
       ctx.beginPath(); ctx.arc(sx,sy,rc,0,7); ctx.fill();
-      if(Math.abs(sim.coreSpin[i])>1e-4){
+      if(Math.abs(sim.coreSR[i]*sim.spin[i])>1e-4){
         const a0=sim.rotAc[i];
         ctx.strokeStyle="rgba(255,255,255,0.5)"; ctx.lineWidth=Math.max(1,rc*0.12);
         for(let k3=0;k3<3;k3++){ const a=a0+k3*2.0944;
@@ -2310,7 +2337,7 @@ function render(){
     const Ti=0.5*sim.m[i]*sim.R[i]*sim.R[i]*sim.spin[i]*sim.spin[i];
     const lam=(Ti>1e-12)? fmt(sim.params.bM/Ti) : "—";
     ctx.font=(10*uiFontScale)+"px sans-serif"; ctx.fillStyle="#dfe4ff"; // v1.17: 文字サイズ追従
-    const coreTxt=(sim.coreM[i]!==0||sim.coreSpin[i]!==0)? ` mc=${fmt(sim.coreM[i])} sc=${fmt(sim.coreSpin[i])}` : "";  // 第12便
+    const coreTxt=(sim.coreMR[i]!==0)? ` mc/m=${fmt(sim.coreMR[i])} sc/s=${fmt(sim.coreSR[i])}` : "";  // 第14便: 比率表示
     ctx.fillText(`m=${fmt(sim.m[i])}${coreTxt} s=${fmt(sim.spin[i])} T=${fmt(Ti)} λ=${lam} ${T("hudClock")}=${(frac*100).toFixed(1)}%`,8,ch-10);
   }
   // v1.21: スロット配置 — 複数グラフは右下から縦に積み、互いを隠さない(🌠merger)
@@ -2388,11 +2415,11 @@ function drawWorldInto(S, y0, hgt, label, tbuf){
         ctx.lineTo(px+Math.cos(a)*rr*0.92, py+Math.sin(a)*rr*0.92); ctx.stroke(); }
       ctx.lineWidth=1;
     }
-    if(S.coreM[i]!==0 && rr>=7){   // 第12便: 主星2層のコア(A/B側も同様)
+    if(S.coreMR[i]!==0 && rr>=7){   // 主星2層のコア(A/B側も同様。空洞=より暗い穴)
       const rc=Math.max(3,Math.min(S.Rc[i]*z,rr*0.92));
-      ctx.fillStyle="rgba(10,12,24,0.55)";
+      ctx.fillStyle=(S.coreMR[i]<0)? "rgba(3,4,10,0.85)" : "rgba(10,12,24,0.55)";
       ctx.beginPath(); ctx.arc(px,py,rc,0,7); ctx.fill();
-      if(Math.abs(S.coreSpin[i])>1e-4){
+      if(Math.abs(S.coreSR[i]*S.spin[i])>1e-4){
         const a0=S.rotAc[i];
         ctx.strokeStyle="rgba(255,255,255,0.5)"; ctx.lineWidth=Math.max(1,rc*0.12);
         for(let k3=0;k3<3;k3++){ const a=a0+k3*2.0944;
@@ -2600,7 +2627,7 @@ function cloneSimState(){ // 現在の sim の完全コピー(同一プリセッ
   const simB=makeSim(); simB.build(JSON.parse(JSON.stringify(currentPreset)));
   if(simB.n===sim.n){
     for(const k of ["m","x","y","vx","vy","spin","R","rotA","tau","uPx","uPy",
-      "coreM","coreSpin","mEff","Rc","rotAc",   // 第12便: 主星2層の状態も転写
+      "coreMR","coreSR","mEff","Rc","rotAc",   // 主星2層の状態も転写(第14便: 比率仕様)
       "railR","railAng","railOmega","railCx","railCy"]) simB[k].set(sim[k]);
     simB.hasCore=sim.hasCore;
     simB.pinned.set(sim.pinned); simB.hasU.set(sim.hasU);
@@ -3152,7 +3179,7 @@ const SYSTEM_PROMPT = `あなたは「仮想物理シミュレータ」のプリ
 - box: {type,n,cx,cy,w,h,mMin,mMax,spinMin,spinMax,vScale} — 幅w高さhの矩形にn個、ランダム方向に速さ〜vScale。
 - ring/disk/box には省略可の bulkVx,bulkVy(母集団の並進速度)を指定できる。移動する天体(vx,vyを持つ single)の周りに円盤・環を置くときは、必ず同じ値を bulkVx,bulkVy に与えて核と一体で動かすこと。
 - single には省略可の zonal(扁平中心天体の帯状重力補正 E13)を指定できる: {"refR":基準半径,"calib":1,"J":{"2":0.0163,"4":-0.0009}}。偶数次 J2〜J12 のみ・|J|≤0.1・refR:1〜5000・calib:0〜2。中心の大質量 pinned 粒子に付けると周回粒子の楕円軌道の近点が前進する(内側ほど速い差動近点移動 — 画面左上に実測/解析の近点移動が表示される)。土星なら J2≈0.0163。要望が扁平天体・歳差・近点移動のときだけ使う高度な属性で、通常のプリセットでは指定しない。
-- single には省略可の coreM,coreSpin(主星2層 — コアの質量とスピン)を指定できる。総質量は m+coreM。coreSpin はコアの絶対角速度で、剛体回転(coreSpin=spin)は単層と等価 — 差動分 (coreSpin−spin) だけが質量重みとコア核(半径 radiusScale·√coreM)から追加の空間引きずりとして効く。coreM=0(既定)で従来の単層。要望がコア/深部回転・2層天体のときだけ使う高度な属性。
+- single には省略可の coreMR,coreSR(主星2層 — コアの質量比とスピン比)を指定できる。m は総質量のままで、coreMR=mc/m(−1〜1。既定0。負値=空洞〔殻に質量集中〕)・coreSR=sc/s(既定1=剛体回転=単層と等価)。差動分だけが ω += coreMR·s·(coreSR−1)·(Rc/(Rc+d))^q(Rc=radiusScale·√|coreMR·m|)として追加の空間引きずりに効く。要望がコア/深部回転・空洞天体・2層天体のときだけ使う高度な属性。
 
 # 例
 例1 要望「連星と、その周りを回る惑星たち」
@@ -3530,7 +3557,7 @@ function updateBodyEdit(){
   const i=selIdx;
   $("#beTitle").textContent=T("beTitle")+(ab? `(${selWorld})` : "");   // どちらの宇宙かを明示
   $("#beM").value=fmt(S.m[i]); $("#beS").value=fmt(S.spin[i]);
-  $("#beMc").value=fmt(S.coreM[i]); $("#beSc").value=fmt(S.coreSpin[i]);
+  $("#beMc").value=fmt(S.coreMR[i]); $("#beSc").value=fmt(S.coreSR[i]);
   $("#beVx").value=fmt(S.vx[i]); $("#beVy").value=fmt(S.vy[i]);
   $("#bePin").checked=!!S.pinned[i];
 }
@@ -3544,8 +3571,8 @@ function beBind(id,fn){
   });
 }
 beBind("#beM",(S,i,v)=>{ S.m[i]=clamp(v,-5000,5000); S.updateRadii(); });     // 第12便: 負質量も実験用に受理
-beBind("#beMc",(S,i,v)=>{ S.coreM[i]=clamp(v,-5000,5000); S.updateRadii(); }); // 主星2層: コア質量
-beBind("#beSc",(S,i,v)=>{ S.coreSpin[i]=clamp(v,-40,40); S.updateRadii(); });  // 主星2層: コアスピン(hasCore更新のためRadii経由)
+beBind("#beMc",(S,i,v)=>{ S.coreMR[i]=clamp(v,-1,1); S.updateRadii(); });   // コア質量比 mc/m(負値=空洞)
+beBind("#beSc",(S,i,v)=>{ S.coreSR[i]=clamp(v,-20,20); });                  // コアスピン比 sc/s(既定1)
 beBind("#beS",(S,i,v)=>{ S.spin[i]=clamp(v,-40,40); });
 beBind("#beVx",(S,i,v)=>{ S.vx[i]=clamp(v,-100,100); });
 beBind("#beVy",(S,i,v)=>{ S.vy[i]=clamp(v,-100,100); });
