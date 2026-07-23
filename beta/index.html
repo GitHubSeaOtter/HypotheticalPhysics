@@ -42,7 +42,8 @@
   #hud{position:absolute;left:8px;top:6px;font-size:calc(11px*var(--uz,1));color:var(--dim);pointer-events:none;
     text-shadow:0 1px 2px #000;line-height:1.5;white-space:pre;}
   /* v1.17: 選択粒子の編集パネル(タップ選択中のみ表示) */
-  #bodyEdit{position:absolute;right:8px;top:8px;width:172px;background:rgba(20,24,48,.94);
+  /* 第12便: z-index — 狭い横画面等でキャンバスが低くても、後続UI(操作列・タブ)に隠れず操作できる */
+  #bodyEdit{position:absolute;right:8px;top:8px;width:172px;z-index:6;background:rgba(20,24,48,.94);
     border:1px solid var(--line);border-radius:10px;padding:8px;display:none;font-size:calc(11.5px*var(--uz,1));}
   #bodyEdit .beHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;
     font-weight:700;color:var(--acc);}
@@ -165,8 +166,12 @@
     <div id="bodyEdit">
       <div class="beHead"><span id="beTitle">選択粒子の編集</span><button id="beClose" aria-label="close">✕</button></div>
       <!-- v1.24: 負値を取り得る s/vx/vy は inputmode=text(iOS の数字キーパッドに「−」が無いため) -->
-      <div class="beRow"><label id="beLm">m</label><input type="text" id="beM" inputmode="decimal" autocomplete="off">
+      <!-- 第12便: m は負値も受理するため inputmode=text(iOS の数字キーパッドに「−」が無い) -->
+      <div class="beRow"><label id="beLm">m</label><input type="text" id="beM" inputmode="text" autocomplete="off">
         <label id="beLs">s</label><input type="text" id="beS" inputmode="text" autocomplete="off"></div>
+      <!-- 第12便: 主星2層 — コアの質量 mc とスピン sc(既定0=単層。粒子ごとに編集可) -->
+      <div class="beRow"><label id="beLmc">mc</label><input type="text" id="beMc" inputmode="text" autocomplete="off">
+        <label id="beLsc">sc</label><input type="text" id="beSc" inputmode="text" autocomplete="off"></div>
       <div class="beRow"><label>vx</label><input type="text" id="beVx" inputmode="text" autocomplete="off">
         <label>vy</label><input type="text" id="beVy" inputmode="text" autocomplete="off"></div>
       <div class="beRow"><label id="beLp" style="flex:1">固定(pinned)</label><input type="checkbox" id="bePin"></div>
@@ -1018,44 +1023,18 @@ const BUILTIN_PRESETS = [
   overlays:{rotationCurve:false,tempHistogram:false,field:false} },
 
 // ===== グループ: 天体の物語 =====
-{ id:"saturnZonal", name:"土星の近点移動(現実較正)", emoji:"🧭", group:"天体の物語",
-  description:"現実の土星の扁平さ(帯状重力調和係数 J2〜J12、Cassini 実測値)を中心星の属性として与えた較正デモ(E13)。近点方向を揃えた楕円軌道のテスト粒子は、近点が公転と同じ向きに回り続け、内側ほど速い(差動近点移動)。D68 リングレット相当では解析式が Cassini 観測 38.243°/日 と 0.03% で一致(QA が機械検証)。線の軌跡は既定ONで、楕円の向きがゆっくり回るのがそのまま見える。狭いリングレットが一体で歳差するには自己重力・衝突・共鳴の補償が要る(本デモは扁平重力のみ)。DFM 本来の環の物語は 🪐 を参照。",
-  en:{name:"Saturn Apsidal Precession (Real-Calibrated)", description:"A calibration demo (E13) that gives the central star the real oblateness of Saturn (zonal gravity harmonics J2\u2013J12, Cassini values). Test particles on apse-aligned elliptical orbits precess prograde, faster on inner orbits (differential apsidal precession). At the D68-ringlet radius the analytic rate matches the Cassini observation of 38.243\u00b0/day to 0.03% (machine-checked by QA). Trails are on by default so you can watch the ellipse orientation slowly rotate. Note a narrow ringlet needs self-gravity, collisions and resonances to precess as one body \u2014 this demo has oblateness only. See \ud83e\ude90 for the DFM-native ring story."},
-  activeParams:["G","softening"],
-  camera:{scale:300}, world:{boundary:"none",size:0},
-  physics:{G:1, D0:2, kFrame:0, q:2, kRep:0, muF:0, gammaN:0, kappaS:0, Kt:60,
-    cLight:60, bM:1, etaRad:0, pRad:4, gravityX:0, gravityY:0, geoPN:1, lambdaPN:0, pnAlpha:1.5, radiusScale:1.2, softening:2, timeScale:3},
-  bodies:[ // 第11次裁定(2026-07-22): 中心に Cassini 重力解 J2〜J12(基準半径 R_S=100 sim units)。
-           // 第12次(同日・原仮定者指示): overlays.trail=true — 線の軌跡を既定ONにして
-           // 楕円の向きの回転(差動近点移動)が開いた瞬間から見えるようにする。
-           // geoPN=1・λ_PN=0 = E6′排他+純ニュートン(E12 も無効)— ☿ の λ=0 統制と同じ構成。
-           // kFrame=0 なら等価だが、スライダーで kFrame を上げても E6′ が復活しない防御的分離。
-           // テスト粒子は e=0.05・近点+x方向で整列(r_p=a(1−e), v_p=√[μ(1+e)/r_p], μ=G·M=1500)。
-           // DFM 効果(kFrame/kRep/muF/γN)は 0 にして扁平重力の効果だけを分離(サンプル分割A)。
-    {type:"single", m:1500, x:0,y:0, vx:0,vy:0, spin:0, pinned:true,
-     zonal:{refR:100, calib:1, J:{2:0.016290573, 4:-0.000935314, 6:0.000086340,
-            8:-0.000014624, 10:0.000004672, 12:-0.000000997}}},
-    {type:"single", m:0.05, x:102.60,y:0, vx:0,vy:3.9180, spin:0, pinned:false},
-    {type:"single", m:0.05, x:110.20,y:0, vx:0,vy:3.7805, spin:0, pinned:false},
-    {type:"single", m:0.05, x:119.70,y:0, vx:0,vy:3.6274, spin:0, pinned:false},
-    {type:"single", m:0.05, x:131.10,y:0, vx:0,vy:3.4661, spin:0, pinned:false},
-    {type:"single", m:0.05, x:144.40,y:0, vx:0,vy:3.3026, spin:0, pinned:false},
-    {type:"single", m:0.05, x:159.60,y:0, vx:0,vy:3.1414, spin:0, pinned:false},
-    {type:"single", m:0.05, x:176.70,y:0, vx:0,vy:2.9855, spin:0, pinned:false},
-    {type:"single", m:0.05, x:195.70,y:0, vx:0,vy:2.8369, spin:0, pinned:false},
-    {type:"single", m:0.05, x:216.60,y:0, vx:0,vy:2.6966, spin:0, pinned:false},
-    {type:"single", m:0.05, x:239.40,y:0, vx:0,vy:2.5649, spin:0, pinned:false}
-  ],
-  overlays:{rotationCurve:false,tempHistogram:false,field:false,trail:true} },
-
 { id:"saturnZonalD68", name:"土星の近点移動(D68精密較正)", emoji:"🛰️", group:"天体の物語",
-  description:"🧭 の較正モード(第11次裁定の保留分を v1.29 で実装)。解析式は J2〜J12 で打ち切るため D68 実測 38.243°/日 に対し −0.03% の残差が残る。本サンプルは較正係数 C=1.0003023(高次項・離心率補正の代替)を中心星の zonal.calib(帯状重力補正 E13 の較正係数)に与え、D68 相当半径の近点移動を観測値へ精密一致させる(QA が 38.243±0.002 を機械検証)。構成・テスト粒子は 🧭 と同一 — 違いは C のみで、見た目の差は 0.03% なので画面では区別できない(較正の意味を示す教材サンプル)。",
-  en:{name:"Saturn Apsidal Precession (D68 Calibrated)", description:"Calibrated mode of 🧭 (11th-adjudication deferral, added in v1.29). Truncating at J2–J12 leaves a −0.03% residual vs the observed 38.243°/day at D68. This sample applies the calibration factor C=1.0003023 (standing in for higher-order terms) via the central star's zonal.calib, matching the D68-radius precession to the observation (QA checks 38.243±0.002). Same bodies as 🧭 — the only difference is C, visually indistinguishable at 0.03%."},
+  description:"現実の土星の扁平さ(帯状重力調和係数 J2〜J12、Cassini 実測値)を中心星の属性として与えた較正デモ(E13)。近点方向を揃えた楕円軌道のテスト粒子は、近点が公転と同じ向きに回り続け、内側ほど速い(差動近点移動)。線の軌跡は既定ONで、楕円の向きがゆっくり回るのがそのまま見える。解析式は J2〜J12 で打ち切るため D68 実測 38.243°/日 に対し −0.03% の残差が残るので、較正係数 C=1.0003023(高次項・離心率補正の代替)を中心星の zonal.calib に与えて観測値へ精密一致させている(QA が 38.243±0.002 を機械検証)。旧「現実較正」版(C=1)は本サンプルへ一本化(2026-07-23 原仮定者裁定 — 差は 0.03% で画面では区別できないため)。DFM 本来の環の物語は 🪐 を参照。",
+  en:{name:"Saturn Apsidal Precession (D68 Calibrated)", description:"A calibration demo (E13) that gives the central star the real oblateness of Saturn (zonal gravity harmonics J2–J12, Cassini values). Test particles on apse-aligned elliptical orbits precess prograde, faster on inner orbits (differential apsidal precession); trails are on by default so the slow rotation of the ellipse orientation is directly visible. Truncating at J2–J12 leaves a −0.03% residual vs the observed 38.243°/day at D68, so the calibration factor C=1.0003023 (standing in for higher-order terms) is applied via the central star's zonal.calib, matching the observation (QA checks 38.243±0.002). The former “real-calibrated” variant (C=1) was merged into this sample (originator's ruling, 2026-07-23 — the 0.03% difference is invisible on screen). See 🪐 for the DFM-native ring story."},
   activeParams:["G","softening"],
   camera:{scale:300}, world:{boundary:"none",size:0},
   physics:{G:1, D0:2, kFrame:0, q:2, kRep:0, muF:0, gammaN:0, kappaS:0, Kt:60,
     cLight:60, bM:1, etaRad:0, pRad:4, gravityX:0, gravityY:0, geoPN:1, lambdaPN:0, pnAlpha:1.5, radiusScale:1.2, softening:2, timeScale:3},
-  bodies:[ // 第11次裁定 保留分(v1.29): 🧭 と同一構成で calib のみ 1.000302283(D68 精密較正)
+  bodies:[ // 第11次裁定 保留分(v1.29): 中心に Cassini 重力解 J2〜J12(基準半径 R_S=100 sim units)+
+           // calib=1.000302283(D68 精密較正)。テスト粒子は e=0.05・近点+x方向で整列
+           // (r_p=a(1−e), v_p=√[μ(1+e)/r_p], μ=G·M=1500)。DFM 効果(kFrame/kRep/muF/γN)は 0 に
+           // して扁平重力の効果だけを分離。geoPN=1・λ_PN=0 = E6′排他+純ニュートン。
+           // 旧 🧭(現実較正 C=1)は 2026-07-23 原仮定者裁定で本サンプルへ一本化・廃止
     {type:"single", m:1500, x:0,y:0, vx:0,vy:0, spin:0, pinned:true,
      zonal:{refR:100, calib:1.000302283, J:{2:0.016290573, 4:-0.000935314, 6:0.000086340,
             8:-0.000014624, 10:0.000004672, 12:-0.000000997}}},
@@ -1073,8 +1052,8 @@ const BUILTIN_PRESETS = [
   overlays:{rotationCurve:false,tempHistogram:false,field:false,trail:true} },
 
 { id:"saturn", name:"土星の環(実験)", emoji:"🪐", group:"天体の物語",
-  description:"氷の粒(低質量・低散逸 muF=0.2/γN=0.15)の環の実験サンプル(旧「土星の環」を置換 — 原仮定者調整 2026-07-22)。中心星のスピンが空間を引きずり(kFrame=1・A8)、氷粒の衝突円形化(T3)と合わさって長時間安定な環を保つ。初期配置は t=300〜600 の実測安定分布に合わせて再設計し、t≈1200 まで落下・散逸ゼロを機械検証(v1.24 と同じ流儀)。環は空間引きずりで [ゆっくり内側へ漂いながら] 形を保つ — muF=0 にすると円形化が止まる対照も試せる。Kt=3600 は物理対応ロック Kt=c²/G の成立値。中心天体の表示半径は現実の比率に近い(radiusScale 1.8)。現実較正の近点移動は 🧭 を参照。",
-  en:{name:"Saturn's Rings (Experimental)", description:"An experimental ring of icy grains (low mass, low dissipation: muF=0.2/\u03b3N=0.15), replacing the former Saturn sample (originator's tuning, 2026-07-22). The central star's spin drags nearby space (kFrame=1, A8) and, with collisional circularization (T3), keeps the ring stable for a long run. The initial layout was redesigned to match the measured relaxed distribution at t=300\u2013600, and machine-verified to stay intact (zero falls/escapes) to t\u22481200 \u2014 the same recipe as v1.24. Try muF=0 to stop the circularization. Kt=3600 satisfies the GR-calibration lock Kt=c\u00b2/G; the central body is drawn near the real proportion (radiusScale 1.8). See \ud83e\udded for the real-calibrated apsidal precession."},
+  description:"氷の粒(低質量・低散逸 muF=0.2/γN=0.15)の環の実験サンプル(旧「土星の環」を置換 — 原仮定者調整 2026-07-22)。中心星のスピンが空間を引きずり(kFrame=1・A8)、氷粒の衝突円形化(T3)と合わさって長時間安定な環を保つ。初期配置は t=300〜600 の実測安定分布に合わせて再設計し、t≈1200 まで落下・散逸ゼロを機械検証(v1.24 と同じ流儀)。環は空間引きずりで [ゆっくり内側へ漂いながら] 形を保つ — muF=0 にすると円形化が止まる対照も試せる。Kt=3600 は物理対応ロック Kt=c²/G の成立値。中心天体の表示半径は現実の比率に近い(radiusScale 1.8)。現実較正の近点移動は 🛰️ を参照。",
+  en:{name:"Saturn's Rings (Experimental)", description:"An experimental ring of icy grains (low mass, low dissipation: muF=0.2/\u03b3N=0.15), replacing the former Saturn sample (originator's tuning, 2026-07-22). The central star's spin drags nearby space (kFrame=1, A8) and, with collisional circularization (T3), keeps the ring stable for a long run. The initial layout was redesigned to match the measured relaxed distribution at t=300\u2013600, and machine-verified to stay intact (zero falls/escapes) to t\u22481200 \u2014 the same recipe as v1.24. Try muF=0 to stop the circularization. Kt=3600 satisfies the GR-calibration lock Kt=c\u00b2/G; the central body is drawn near the real proportion (radiusScale 1.8). See \ud83d\udef0\ufe0f for the real-calibrated apsidal precession."},
   activeParams:["muF","kFrame","kappaS"],   // QA activeParams.ui が先頭=muF の編集反映を検査するため muF を先頭に
   camera:{scale:340}, world:{boundary:"none",size:0},
   physics:{G:1, D0:2, kFrame:1, q:2, kRep:1.2, muF:0.2, gammaN:0.15, kappaS:0.08, Kt:3600,
@@ -1095,352 +1074,24 @@ const BUILTIN_PRESETS = [
   ],
   overlays:{rotationCurve:false,tempHistogram:false,field:false} },
 
-{ id:"saturnMulti", name:"土星の環(多層)", emoji:"💍", group:"天体の物語",
-  description:"実環の C環(薄)/B環(濃)/カッシーニ間隙/A環 を模した多層構成の実験(4-31 多層土星スプリント)。現実の間隙は衛星ミマスの2:1共鳴が維持しているが、本デモは共鳴衛星なしの統制実験 — 中心星の空間引きずり(kFrame=1・A8)による A環の内側漂流で、間隙は t≈300 で狭まり t≈600 までに閉じる(実測: 19→5→閉。閉じる過程まで含めて QA が機械検証)。「維持機構が無いと間隙は残れない」ことを見せる教材で、C<B<A の帯の順序と密度コントラストは保たれ、衝突円形化(T3)で環自体は崩れない。物理は 🪐(実験)と同一。安定な間隙から始める共鳴衛星あり版は 🌙 を参照。",
-  en:{name:"Saturn's Rings (Multi-Layer)", description:"A multi-layer experiment mimicking the real C ring (faint) / B ring (dense) / Cassini division / A ring (4-31 sprint). In reality Mimas' 2:1 resonance maintains the gap; this is a control run without the resonant moon — frame dragging by the central star (kFrame=1, A8) makes the A ring drift inward, so the gap narrows by t≈300 and closes by t≈600 (measured 19→5→closed; the closing process itself is machine-checked). A lesson that a gap cannot persist without its maintaining mechanism. Band order C<B<A and the density contrast survive, and collisional circularization (T3) keeps the ring itself intact. Physics identical to 🪐. See 🌙 for the resonant-moon version that starts from a stabilized gap."},
-  activeParams:["muF","kFrame","kappaS"],
+{ id:"saturnLayered", name:"土星の環(主星2層)", emoji:"🎯", group:"天体の物語",
+  description:"主星をコア(mc=900)と外層(m=600)の2層に分けた 🪐 の姉妹版(第12便・2026-07-23)。総質量は1500で 🪐 と同一 — 重力も見かけの半径も変わらず、コアのスピン sc だけが表面 s と独立に持てる(既定 χ=sc/s=1.05 — 土星の深部回転が表面より速いという推定に合わせた仮定値)。コアは半径 Rc=radiusScale·√mc の小さな第2の引きずり核として空間を引きずる(A8)。中心天体をタップすると mc/sc を編集でき、コアを速く回す(例 sc=0.5)と環への引きずりの効き方が変わるのを試せる。sc=0 なら 🪐 と厳密に等価(質量の2層分割は力学に影響しない — QA が機械検証)。氷粒の衝突円形化(T3)は 🪐 と同一。コア/外層の角速度分離(差動回転)実験の第一歩。",
+  en:{name:"Saturn's Rings (Two-Layer Primary)", description:"Sister sample of 🪐 with the primary split into a core (mc=900) and an outer layer (m=600). Total mass stays 1500 — gravity and apparent radius are unchanged — but the core spin sc is independent of the surface spin s (default χ=sc/s=1.05, matching the estimate that Saturn's deep interior rotates slightly faster than its surface). The core acts as a second, smaller frame-dragging kernel of radius Rc=radiusScale·√mc (A8). Tap the central body to edit mc/sc — spin the core up (e.g. sc=0.5) and watch how the drag on the rings changes. With sc=0 this is exactly equivalent to 🪐 (splitting mass into layers has no dynamical effect — machine-verified). Collisional circularization of the icy grains (T3) is identical to 🪐. A first step toward core/surface differential-rotation experiments."},
+  activeParams:["kFrame","muF","kappaS"],
   camera:{scale:340}, world:{boundary:"none",size:0},
   physics:{G:1, D0:2, kFrame:1, q:2, kRep:1.2, muF:0.2, gammaN:0.15, kappaS:0.08, Kt:3600,
     cLight:60, bM:1, etaRad:0, pRad:4, gravityX:0, gravityY:0, geoPN:0, lambdaPN:1, pnAlpha:1.5, radiusScale:1.8, softening:2, timeScale:3},
-  bodies:[ // 4-31 多層土星スプリント(2026-07-23): 実環の比率を R_中心=100 相当へ概算スケール。
-           // C 108–134(薄 n50)/ B 136–182(濃 n170)/ カッシーニ間隙 182–198(空)/ A 198–218(n80)。
-           // 実測較正(t0/t300/t600): 間隙幅 = A環内縁(p5)−B環外縁(p95)= 19.2 → 4.9 → −18(閉鎖)。
-           // A環は E6′ で強く内側漂流(中央 207→175)する一方 B環外縁は粘性拡散で +5 — 共鳴衛星の
-           // 維持機構なしでは間隙は閉じる、を見せる統制実験として QA behavior.saturnMulti が
-           // 「途中まで間隙が残り(t150)・帯の順序と安定が保たれる(t600)」を帯メンバーシップで検証。
-           // physics は 🪐(実験)の較正値をそのまま使う。粒子の並び: 0=中心, 1..50=C, 51..220=B, 221..300=A
-    {type:"single", m:1500, x:0,y:0, vx:0,vy:0, spin:0.05, pinned:true},
-    {type:"ring", n:50, cx:0,cy:0, rIn:108,rOut:134, mMin:0.01,mMax:0.03,
+  bodies:[ // 第12便(2026-07-23 原仮定者指示): 主星2層 — コアの m と spin を追加パラメータとし、
+           // coreM=0 を既定とすることで既存データと整合(mEff=m+coreM・R=radiusScale·√|mEff|)。
+           // ここでは m=600+mc=900(総質量1500=🪐と同一)・sc=0.0525(χ=1.05)。
+           // 環の帯・physics は 🪐(実験)と同一 — sc=0 で 🪐 と厳密等価(QA core.twolayer)。
+    {type:"single", m:600, coreM:900, coreSpin:0.0525, x:0,y:0, vx:0,vy:0, spin:0.05, pinned:true},
+    {type:"ring", n:75, cx:0,cy:0, rIn:104,rOut:132, mMin:0.01,mMax:0.03,
      spinMin:0,spinMax:0.25, vMode:"kepler", aroundMass:1500, omega:0, vNoise:0.01, direction:1, pinned:false},
-    {type:"ring", n:170, cx:0,cy:0, rIn:136,rOut:182, mMin:0.01,mMax:0.03,
+    {type:"ring", n:150, cx:0,cy:0, rIn:132,rOut:190, mMin:0.01,mMax:0.03,
      spinMin:0,spinMax:0.25, vMode:"kepler", aroundMass:1500, omega:0, vNoise:0.01, direction:1, pinned:false},
-    {type:"ring", n:80, cx:0,cy:0, rIn:198,rOut:218, mMin:0.01,mMax:0.03,
+    {type:"ring", n:75, cx:0,cy:0, rIn:190,rOut:212, mMin:0.01,mMax:0.03,
      spinMin:0,spinMax:0.25, vMode:"kepler", aroundMass:1500, omega:0, vNoise:0.01, direction:1, pinned:false}
-  ],
-  overlays:{rotationCurve:false,tempHistogram:false,field:false} },
-
-
-{ id:"saturnRes", name:"土星の環(共鳴衛星)", emoji:"🌙", group:"天体の物語",
-  description:"💍(多層)の続編 — カッシーニ間隙相当の粒子と公転周期が 2:1 になる軌道(a≈300)に、ミマス相当の小衛星(m=2)を置いた版(4-31 第2弾)。初期値は「間隙が安定した状態」そのもの: 円軌道速度の実測較正(この物理ではケプラー値より約6%速い)で近円生成した多層環を t=300 まで緩和させ、間隙へ入り込んだ粒子を帯へ戻した実測分布を、全302粒子のスナップショットとして焼き込んだ(💍 の冷スタート漂流を除去)。物理は 🪐/💍 と同一 — 中心星の空間引きずり(kFrame=1・A8)と氷粒の衝突円形化(T3)の下で、間隙が t=600 まで帯として残ることを QA が機械検証。なお、この規模(衛星との会合が t600 で約1回)では 2:1 共鳴トルクによる能動的な間隙維持は働かず、衛星を重くするとむしろ共鳴励起で間隙が埋まりやすくなる(m=5 で充填 1.5倍・実測)。現実のミマスが間隙を維持できるのは何万公転もの会合の累積による — その時間スケール差こそが本デモの学び。",
-  en:{name:"Saturn's Rings (Resonant Moon)", description:"Sequel to \ud83d\udc8d (multi-layer): a small Mimas-analog moon (m=2) orbits at a\u2248300, where its period is 2:1 against particles at the Cassini-division radius (4-31 sprint, part 2). The initial values ARE the stabilized state: the multi-layer ring was generated near-circular using the measured circular-speed calibration (\u22486% above Keplerian in this physics), relaxed to t=300, particles that had wandered into the gap were reseated into their bands, and the full 302-body snapshot was baked in \u2014 removing \ud83d\udc8d's cold-start drift. QA machine-verifies the gap survives as a band to t=600. Note that at this scale (\u22481 conjunction per t600) the 2:1 resonant torque cannot actively maintain the gap \u2014 a heavier moon actually fills the gap faster via resonant excitation (1.5\u00d7 at m=5, measured). The real Mimas maintains the division through tens of thousands of accumulated conjunctions; that timescale contrast is the lesson."},
-  activeParams:["muF","kFrame","kappaS"],
-  camera:{scale:340}, world:{boundary:"none",size:0},
-  physics:{G:1, D0:2, kFrame:1, q:2, kRep:1.2, muF:0.2, gammaN:0.15, kappaS:0.08, Kt:3600,
-    cLight:60, bM:1, etaRad:0, pRad:4, gravityX:0, gravityY:0, geoPN:0, lambdaPN:1, pnAlpha:1.5, radiusScale:1.8, softening:2, timeScale:3},
-  bodies:[ // 4-31 第2弾(2026-07-23 第11便): 「間隙が安定した状態を、改めて初期値とする」(原仮定者指示)。
-           // 生成手順(実測較正 2026-07-23・決定論): ①円軌道速度の較正 v=f(a)·√(GM/a),
-           //   f≈1.069−0.0001×(a−160)(この physics では実効重力がニュートン値より強く、
-           //   従来の vMode:"kepler" 生成は約6%遅い冷スタートだった — 🪐/💍 の内側漂流の主因)。
-           //   ring 生成では aroundMass=1500×f² が同じ効果を持つ。
-           // ②C 108-134 n50 / B 136-182 n170 / 間隙 / A 198-218 n80(vNoise 0.004)+
-           //   衛星 m=2 を a=300.2(間隙中心 190 の実測公転周期 199.2 の 2 倍 = 2:1)へ近円配置。
-           // ③t=300 まで緩和 → 間隙窓 [184,196] の迷い粒子 8 個を自帯の [p25,p75] へ再配置 →
-           //   全 302 粒子をスナップショット(本配列)。
-           // 検証(この初期値から): 間隙幅(A環p5−B環p95)t0=18.3 → t600=10.8(帯として残存)・
-           //   中心8幅窓の侵入 ≤11・帯内 100%・落下/散逸 0・衛星軌道 298〜300(QA behavior.saturnRes)。
-           // 粒子の並び: 0=中心, 1..50=C, 51..220=B, 221..300=A, 301=共鳴衛星
-    {type:"single",m:1500,x:0,y:0,vx:0,vy:0,spin:0.05,pinned:true},
-    {type:"single",m:0.0214,x:-27.94,y:130.21,vx:-3.5044,vy:-0.7933,spin:-0.062,pinned:false},
-    {type:"single",m:0.0194,x:-64.44,y:113.43,vx:-3.1226,vy:-1.8789,spin:-0.087,pinned:false},
-    {type:"single",m:0.0286,x:-65.96,y:-95.31,vx:3.1804,vy:-2.097,spin:0.025,pinned:false},
-    {type:"single",m:0.0186,x:-62.44,y:127.35,vx:-3.1773,vy:-1.4117,spin:-0.017,pinned:false},
-    {type:"single",m:0.0131,x:-122.28,y:-17.63,vx:0.4895,vy:-3.698,spin:0.02,pinned:false},
-    {type:"single",m:0.0273,x:-116.66,y:59.03,vx:-1.7303,vy:-3.2133,spin:-0.066,pinned:false},
-    {type:"single",m:0.0222,x:-128.51,y:30.59,vx:-0.8812,vy:-3.4501,spin:-0.021,pinned:false},
-    {type:"single",m:0.0268,x:-93.16,y:-86.76,vx:2.4332,vy:-2.7149,spin:0.045,pinned:false},
-    {type:"single",m:0.0204,x:-129.86,y:14.3,vx:-0.4004,vy:-3.6031,spin:-0.017,pinned:false},
-    {type:"single",m:0.0226,x:-75.89,y:-88.95,vx:3.001,vy:-2.4282,spin:0.005,pinned:false},
-    {type:"single",m:0.0104,x:47.26,y:-105.34,vx:3.5262,vy:1.5629,spin:0.14,pinned:false},
-    {type:"single",m:0.0247,x:80.65,y:-86.92,vx:2.7949,vy:2.4863,spin:0.21,pinned:false},
-    {type:"single",m:0.013,x:-131.7,y:-32.9,vx:0.883,vy:-3.379,spin:0.065,pinned:false},
-    {type:"single",m:0.0141,x:80.63,y:-89.81,vx:2.8385,vy:2.5265,spin:-0.013,pinned:false},
-    {type:"single",m:0.0271,x:93.49,y:-61.7,vx:2.1847,vy:3.3141,spin:0.125,pinned:false},
-    {type:"single",m:0.0196,x:93.24,y:-61.13,vx:2.1354,vy:3.3084,spin:0.102,pinned:false},
-    {type:"single",m:0.0299,x:-108.78,y:-74.08,vx:1.9872,vy:-3.0678,spin:-0.004,pinned:false},
-    {type:"single",m:0.0235,x:80.14,y:-89.84,vx:2.8396,vy:2.5101,spin:0.07,pinned:false},
-    {type:"single",m:0.0172,x:103.85,y:-20.24,vx:0.9476,vy:3.9828,spin:0.173,pinned:false},
-    {type:"single",m:0.0111,x:-51.22,y:-128.34,vx:3.1955,vy:-1.4373,spin:0.136,pinned:false},
-    {type:"single",m:0.0269,x:42.31,y:-124.76,vx:3.3642,vy:1.1008,spin:0.162,pinned:false},
-    {type:"single",m:0.0168,x:-22.63,y:-133.58,vx:3.4308,vy:-0.4975,spin:0.189,pinned:false},
-    {type:"single",m:0.0297,x:-25.29,y:-136.87,vx:3.4676,vy:-0.6249,spin:0.153,pinned:false},
-    {type:"single",m:0.0171,x:71.84,y:-108.57,vx:2.9532,vy:1.919,spin:0.19,pinned:false},
-    {type:"single",m:0.014,x:116.97,y:15.92,vx:-0.5142,vy:3.7826,spin:0.153,pinned:false},
-    {type:"single",m:0.0279,x:87.5,y:-89.24,vx:2.6814,vy:2.5897,spin:0.179,pinned:false},
-    {type:"single",m:0.0147,x:107.32,y:49.17,vx:-1.5926,vy:3.4657,spin:0.125,pinned:false},
-    {type:"single",m:0.0269,x:116.22,y:-56.41,vx:1.6023,vy:3.2616,spin:0.218,pinned:false},
-    {type:"single",m:0.0291,x:-47.7,y:96.98,vx:-3.5813,vy:-1.767,spin:-0.051,pinned:false},
-    {type:"single",m:0.0188,x:100.01,y:71.83,vx:-2.1322,vy:3.0871,spin:0.126,pinned:false},
-    {type:"single",m:0.0163,x:54.98,y:104.25,vx:-3.3167,vy:1.816,spin:0.055,pinned:false},
-    {type:"single",m:0.0174,x:92.26,y:73.27,vx:-2.45,vy:2.9349,spin:0.081,pinned:false},
-    {type:"single",m:0.028,x:121.01,y:-51.86,vx:1.4528,vy:3.3067,spin:0.196,pinned:false},
-    {type:"single",m:0.0131,x:-70.62,y:89.04,vx:-2.9913,vy:-2.4078,spin:-0.056,pinned:false},
-    {type:"single",m:0.0162,x:-81.45,y:78.18,vx:-2.6649,vy:-2.8256,spin:-0.078,pinned:false},
-    {type:"single",m:0.0247,x:-4.69,y:117.72,vx:-3.8266,vy:-0.1074,spin:-0.023,pinned:false},
-    {type:"single",m:0.0188,x:-87.63,y:66.88,vx:-2.3814,vy:-3.1654,spin:-0.093,pinned:false},
-    {type:"single",m:0.0126,x:112.66,y:72.25,vx:-1.9531,vy:3,spin:0.106,pinned:false},
-    {type:"single",m:0.0168,x:-97.09,y:56.53,vx:-1.961,vy:-3.3869,spin:-0.082,pinned:false},
-    {type:"single",m:0.0116,x:125.79,y:46.8,vx:-1.234,vy:3.3561,spin:0.104,pinned:false},
-    {type:"single",m:0.0254,x:63.11,y:109.89,vx:-3.1023,vy:1.9418,spin:0.071,pinned:false},
-    {type:"single",m:0.0157,x:-39.55,y:117.69,vx:-3.4818,vy:-1.181,spin:-0.046,pinned:false},
-    {type:"single",m:0.0149,x:-108.63,y:41.56,vx:-1.4186,vy:-3.5866,spin:-0.055,pinned:false},
-    {type:"single",m:0.0153,x:-112.73,y:0.41,vx:-0.0246,vy:-3.9342,spin:-0.13,pinned:false},
-    {type:"single",m:0.0119,x:-76.54,y:-76.79,vx:2.7434,vy:-2.8417,spin:0.031,pinned:false},
-    {type:"single",m:0.0285,x:-103.78,y:-45.35,vx:1.5125,vy:-3.5669,spin:-0.033,pinned:false},
-    {type:"single",m:0.03,x:-111.41,y:-0.19,vx:0.0568,vy:-3.9955,spin:-0.117,pinned:false},
-    {type:"single",m:0.0207,x:-24.05,y:128.71,vx:-3.5826,vy:-0.6026,spin:-0.041,pinned:false},
-    {type:"single",m:0.017,x:-100.24,y:-54.32,vx:1.871,vy:-3.3908,spin:-0.002,pinned:false},
-    {type:"single",m:0.0256,x:-119.45,y:50.99,vx:-1.4003,vy:-3.2723,spin:-0.039,pinned:false},
-    {type:"single",m:0.0143,x:74.81,y:122.93,vx:-2.9177,vy:1.8728,spin:-0.031,pinned:false},
-    {type:"single",m:0.0271,x:155.51,y:17.17,vx:-0.3928,vy:3.2635,spin:0.144,pinned:false},
-    {type:"single",m:0.0115,x:147.86,y:62.86,vx:-1.385,vy:2.909,spin:0.163,pinned:false},
-    {type:"single",m:0.0279,x:158.19,y:14.46,vx:-0.1986,vy:3.365,spin:0.148,pinned:false},
-    {type:"single",m:0.0154,x:151.85,y:63.57,vx:-1.2641,vy:2.8935,spin:0.201,pinned:false},
-    {type:"single",m:0.0151,x:104.98,y:-141.78,vx:2.497,vy:1.8949,spin:0.063,pinned:false},
-    {type:"single",m:0.025,x:74.33,y:122.81,vx:-2.9213,vy:1.8873,spin:-0.029,pinned:false},
-    {type:"single",m:0.0168,x:74.54,y:123.28,vx:-2.9078,vy:1.8816,spin:-0.027,pinned:false},
-    {type:"single",m:0.0159,x:160.74,y:6.78,vx:-0.2158,vy:3.2798,spin:0.124,pinned:false},
-    {type:"single",m:0.03,x:120.92,y:-132.17,vx:2.2715,vy:2.1178,spin:0.088,pinned:false},
-    {type:"single",m:0.0115,x:160.66,y:-38.81,vx:0.6552,vy:3.1343,spin:0.108,pinned:false},
-    {type:"single",m:0.0224,x:173.31,y:-17.54,vx:0.306,vy:3.1152,spin:0.193,pinned:false},
-    {type:"single",m:0.0179,x:169.82,y:-48.27,vx:0.9605,vy:2.9788,spin:0.198,pinned:false},
-    {type:"single",m:0.0247,x:144.99,y:69.92,vx:-1.304,vy:2.9431,spin:0.156,pinned:false},
-    {type:"single",m:0.016,x:108.96,y:108,vx:-2.3413,vy:2.4288,spin:0.084,pinned:false},
-    {type:"single",m:0.0265,x:-69.08,y:113.48,vx:-3.0266,vy:-1.9364,spin:-0.09,pinned:false},
-    {type:"single",m:0.0207,x:37.55,y:138.26,vx:-3.3207,vy:0.8692,spin:-0.041,pinned:false},
-    {type:"single",m:0.024,x:38.13,y:139.49,vx:-3.3771,vy:0.908,spin:-0.034,pinned:false},
-    {type:"single",m:0.0274,x:154.74,y:88.67,vx:-1.5286,vy:2.5687,spin:0.246,pinned:false},
-    {type:"single",m:0.0256,x:165.83,y:-7.48,vx:-0.0064,vy:3.2086,spin:0.097,pinned:false},
-    {type:"single",m:0.0153,x:158.63,y:50.99,vx:-0.9216,vy:3.0759,spin:0.163,pinned:false},
-    {type:"single",m:0.0166,x:149.5,y:94.68,vx:-1.5601,vy:2.5643,spin:0.254,pinned:false},
-    {type:"single",m:0.011,x:37.65,y:136.14,vx:-3.3761,vy:0.906,spin:-0.06,pinned:false},
-    {type:"single",m:0.0291,x:85.32,y:144.46,vx:-2.6469,vy:1.8578,spin:0.147,pinned:false},
-    {type:"single",m:0.0121,x:176.85,y:-28.57,vx:0.5742,vy:3.0778,spin:0.172,pinned:false},
-    {type:"single",m:0.0259,x:-80.36,y:110.27,vx:-2.8958,vy:-2.0872,spin:-0.076,pinned:false},
-    {type:"single",m:0.0297,x:112.55,y:115.43,vx:-2.3717,vy:2.3015,spin:0.08,pinned:false},
-    {type:"single",m:0.0277,x:76.08,y:140.88,vx:-2.8582,vy:1.5255,spin:-0.106,pinned:false},
-    {type:"single",m:0.0237,x:-33.57,y:141,vx:-3.3201,vy:-0.8598,spin:-0.036,pinned:false},
-    {type:"single",m:0.0294,x:76.98,y:141.6,vx:-2.8243,vy:1.5424,spin:0.061,pinned:false},
-    {type:"single",m:0.0156,x:77.41,y:140.09,vx:-2.8079,vy:1.4684,spin:0.097,pinned:false},
-    {type:"single",m:0.0186,x:-14.47,y:151.48,vx:-3.3416,vy:-0.2403,spin:-0.07,pinned:false},
-    {type:"single",m:0.0119,x:-90.78,y:109.7,vx:-2.7176,vy:-2.1462,spin:-0.006,pinned:false},
-    {type:"single",m:0.0159,x:107.65,y:114.68,vx:-2.4673,vy:2.1401,spin:0.035,pinned:false},
-    {type:"single",m:0.0252,x:-14.33,y:152.65,vx:-3.3369,vy:-0.2173,spin:0.113,pinned:false},
-    {type:"single",m:0.0147,x:-129.35,y:33.07,vx:-0.9009,vy:-3.5344,spin:-0.009,pinned:false},
-    {type:"single",m:0.0158,x:-149.74,y:40.86,vx:-0.8753,vy:-3.2074,spin:0.224,pinned:false},
-    {type:"single",m:0.0166,x:74.49,y:148.9,vx:-2.8027,vy:1.5035,spin:0.087,pinned:false},
-    {type:"single",m:0.0272,x:-15.3,y:152.16,vx:-3.3424,vy:-0.2768,spin:0.149,pinned:false},
-    {type:"single",m:0.0161,x:156.11,y:80.96,vx:-1.4156,vy:2.7993,spin:0.117,pinned:false},
-    {type:"single",m:0.0234,x:142.68,y:113.4,vx:-1.8789,vy:2.3356,spin:0.202,pinned:false},
-    {type:"single",m:0.0148,x:79.8,y:143.46,vx:-2.8929,vy:1.4845,spin:-0.074,pinned:false},
-    {type:"single",m:0.0255,x:-106.78,y:104.03,vx:-2.4846,vy:-2.3782,spin:0.079,pinned:false},
-    {type:"single",m:0.0214,x:79.84,y:144.17,vx:-2.8776,vy:1.4942,spin:0.019,pinned:false},
-    {type:"single",m:0.0179,x:133.09,y:124.32,vx:-2.0411,vy:2.2171,spin:0.168,pinned:false},
-    {type:"single",m:0.0117,x:-30.12,y:150.64,vx:-3.2883,vy:-0.6865,spin:0.015,pinned:false},
-    {type:"single",m:0.0235,x:95.9,y:143.22,vx:-2.661,vy:1.7985,spin:0.019,pinned:false},
-    {type:"single",m:0.0222,x:-62.73,y:-148.59,vx:3.003,vy:-1.2678,spin:0.196,pinned:false},
-    {type:"single",m:0.027,x:58.5,y:139.9,vx:-3.1785,vy:1.1468,spin:-0.071,pinned:false},
-    {type:"single",m:0.0271,x:-107.03,y:91.95,vx:-2.2511,vy:-2.6744,spin:0.015,pinned:false},
-    {type:"single",m:0.0117,x:-53.13,y:148.83,vx:-3.0455,vy:-1.1456,spin:0.036,pinned:false},
-    {type:"single",m:0.0157,x:-142.62,y:11.67,vx:-0.3034,vy:-3.4412,spin:0.031,pinned:false},
-    {type:"single",m:0.0258,x:96.43,y:143.01,vx:-2.672,vy:1.811,spin:0.012,pinned:false},
-    {type:"single",m:0.018,x:-50.69,y:156.93,vx:-3.0636,vy:-0.9534,spin:0.066,pinned:false},
-    {type:"single",m:0.0229,x:88.27,y:155.2,vx:-2.7136,vy:1.4502,spin:0.071,pinned:false},
-    {type:"single",m:0.0193,x:88.66,y:154.82,vx:-2.6839,vy:1.4726,spin:0.073,pinned:false},
-    {type:"single",m:0.0273,x:24.34,y:165.45,vx:-3.1768,vy:0.4859,spin:-0.008,pinned:false},
-    {type:"single",m:0.0162,x:-128.7,y:78.98,vx:-1.7644,vy:-2.8739,spin:0.025,pinned:false},
-    {type:"single",m:0.0198,x:23.98,y:166.06,vx:-3.2033,vy:0.5489,spin:-0.03,pinned:false},
-    {type:"single",m:0.0284,x:-141.18,y:-12.75,vx:0.3706,vy:-3.4901,spin:-0.047,pinned:false},
-    {type:"single",m:0.0217,x:-140.95,y:-13.27,vx:0.3467,vy:-3.5007,spin:-0.045,pinned:false},
-    {type:"single",m:0.0248,x:-23.46,y:167.22,vx:-3.1639,vy:-0.4273,spin:0.006,pinned:false},
-    {type:"single",m:0.0243,x:-141.63,y:102.9,vx:-1.7813,vy:-2.446,spin:0.169,pinned:false},
-    {type:"single",m:0.0137,x:-23.02,y:167.44,vx:-3.165,vy:-0.4251,spin:0.003,pinned:false},
-    {type:"single",m:0.022,x:-60.82,y:152.59,vx:-2.9942,vy:-1.1975,spin:0.021,pinned:false},
-    {type:"single",m:0.0193,x:-153.14,y:39.91,vx:-0.8366,vy:-3.1687,spin:0.039,pinned:false},
-    {type:"single",m:0.0248,x:-142.86,y:-16.78,vx:0.329,vy:-3.4822,spin:-0.034,pinned:false},
-    {type:"single",m:0.0281,x:-131.9,y:-60.12,vx:1.5034,vy:-3.0855,spin:0.022,pinned:false},
-    {type:"single",m:0.022,x:-142.64,y:-17.84,vx:0.2804,vy:-3.4357,spin:-0.035,pinned:false},
-    {type:"single",m:0.02,x:-47.88,y:-124.04,vx:3.286,vy:-1.2684,spin:0.096,pinned:false},
-    {type:"single",m:0.0112,x:-133.86,y:-25.37,vx:0.651,vy:-3.5531,spin:0,pinned:false},
-    {type:"single",m:0.026,x:-140.86,y:-36.25,vx:0.9004,vy:-3.2987,spin:0.007,pinned:false},
-    {type:"single",m:0.0281,x:-84.74,y:149.11,vx:-2.7218,vy:-1.5585,spin:0.063,pinned:false},
-    {type:"single",m:0.0118,x:-126.71,y:104.52,vx:-2.0646,vy:-2.4679,spin:0.037,pinned:false},
-    {type:"single",m:0.012,x:-10.28,y:179.62,vx:-3.0874,vy:-0.1682,spin:0.095,pinned:false},
-    {type:"single",m:0.0235,x:-101.65,y:-92.71,vx:2.4398,vy:-2.584,spin:-0.002,pinned:false},
-    {type:"single",m:0.0111,x:-96.25,y:137.1,vx:-2.5991,vy:-1.8589,spin:0.011,pinned:false},
-    {type:"single",m:0.0224,x:-153.16,y:40.43,vx:-0.8539,vy:-3.1688,spin:0.027,pinned:false},
-    {type:"single",m:0.0119,x:-147.32,y:-54.82,vx:1.1759,vy:-3.0234,spin:0.105,pinned:false},
-    {type:"single",m:0.0101,x:-148.12,y:92.3,vx:-1.7749,vy:-2.6195,spin:-0.254,pinned:false},
-    {type:"single",m:0.0292,x:-50.47,y:174.54,vx:-2.9455,vy:-0.8219,spin:0.117,pinned:false},
-    {type:"single",m:0.0126,x:-98.53,y:-102.83,vx:2.5143,vy:-2.3908,spin:0.046,pinned:false},
-    {type:"single",m:0.0143,x:-143.68,y:-15.35,vx:0.5072,vy:-3.4919,spin:-0.057,pinned:false},
-    {type:"single",m:0.0235,x:-142.57,y:69.99,vx:-1.3197,vy:-3.0078,spin:-0.059,pinned:false},
-    {type:"single",m:0.0156,x:-145.27,y:-68.47,vx:1.258,vy:-2.976,spin:0.129,pinned:false},
-    {type:"single",m:0.0219,x:-157.96,y:20.53,vx:-0.4636,vy:-3.2613,spin:-0.006,pinned:false},
-    {type:"single",m:0.0158,x:67.79,y:-144.85,vx:2.9652,vy:1.3877,spin:0.169,pinned:false},
-    {type:"single",m:0.0112,x:-115,y:-84.83,vx:2.0828,vy:-2.8133,spin:0.016,pinned:false},
-    {type:"single",m:0.0212,x:-151.72,y:86.33,vx:-1.6178,vy:-2.6548,spin:0.067,pinned:false},
-    {type:"single",m:0.0169,x:-121.22,y:121.16,vx:-2.2495,vy:-2.2624,spin:-0.02,pinned:false},
-    {type:"single",m:0.011,x:-106.97,y:-110.74,vx:2.4277,vy:-2.2882,spin:-0.084,pinned:false},
-    {type:"single",m:0.0253,x:-23.68,y:-137.09,vx:3.4668,vy:-0.5617,spin:0.102,pinned:false},
-    {type:"single",m:0.0239,x:-68.07,y:-125.52,vx:3.1184,vy:-1.641,spin:0.014,pinned:false},
-    {type:"single",m:0.023,x:30.08,y:-132.28,vx:3.5193,vy:0.6536,spin:0.115,pinned:false},
-    {type:"single",m:0.0248,x:-144.67,y:92.16,vx:-1.7264,vy:-2.6571,spin:-0.117,pinned:false},
-    {type:"single",m:0.0108,x:-35.36,y:-142.49,vx:3.2998,vy:-0.7522,spin:0.072,pinned:false},
-    {type:"single",m:0.025,x:-107.17,y:-111.17,vx:2.4056,vy:-2.2779,spin:-0.03,pinned:false},
-    {type:"single",m:0.0204,x:39.9,y:-133.9,vx:3.3409,vy:0.9458,spin:0.136,pinned:false},
-    {type:"single",m:0.0133,x:-168.98,y:-10.74,vx:0.1994,vy:-3.1488,spin:-0.021,pinned:false},
-    {type:"single",m:0.0157,x:-139.97,y:-71.52,vx:1.4969,vy:-2.9267,spin:0.034,pinned:false},
-    {type:"single",m:0.0268,x:-61.53,y:-132.54,vx:3.1415,vy:-1.4471,spin:0.018,pinned:false},
-    {type:"single",m:0.0168,x:-8.9,y:-150.11,vx:3.3147,vy:-0.1856,spin:0.119,pinned:false},
-    {type:"single",m:0.025,x:-171.05,y:5.56,vx:-0.118,vy:-3.1673,spin:0.015,pinned:false},
-    {type:"single",m:0.022,x:-115.63,y:-104.37,vx:2.2237,vy:-2.4635,spin:0.101,pinned:false},
-    {type:"single",m:0.0223,x:-145.85,y:-77.07,vx:1.4966,vy:-2.6967,spin:0.05,pinned:false},
-    {type:"single",m:0.0296,x:-169.11,y:-10,vx:0.2351,vy:-3.1657,spin:-0.024,pinned:false},
-    {type:"single",m:0.0181,x:14.35,y:-142.16,vx:3.4834,vy:0.3538,spin:-0.011,pinned:false},
-    {type:"single",m:0.0106,x:14.77,y:-142.43,vx:3.4468,vy:0.3452,spin:-0.068,pinned:false},
-    {type:"single",m:0.0124,x:-161.25,y:-61.93,vx:1.0634,vy:-2.9365,spin:0.074,pinned:false},
-    {type:"single",m:0.0154,x:37.41,y:-139.74,vx:3.3125,vy:0.9339,spin:0.087,pinned:false},
-    {type:"single",m:0.0117,x:-146.83,y:-77.84,vx:1.5058,vy:-2.8893,spin:0.018,pinned:false},
-    {type:"single",m:0.0185,x:-147.27,y:-77.86,vx:1.5066,vy:-2.8986,spin:0.024,pinned:false},
-    {type:"single",m:0.016,x:-111.22,y:-115.45,vx:2.3552,vy:-2.2543,spin:0.015,pinned:false},
-    {type:"single",m:0.0219,x:51.32,y:-137.51,vx:3.182,vy:1.2388,spin:-0.059,pinned:false},
-    {type:"single",m:0.0127,x:-23.92,y:-161.55,vx:3.1579,vy:-0.4014,spin:0.087,pinned:false},
-    {type:"single",m:0.0232,x:76.71,y:-125.62,vx:2.8922,vy:1.7753,spin:0.162,pinned:false},
-    {type:"single",m:0.0146,x:104.76,y:-83.92,vx:2.3243,vy:2.8031,spin:0.089,pinned:false},
-    {type:"single",m:0.0208,x:123.23,y:-54.52,vx:1.3692,vy:3.2888,spin:0.181,pinned:false},
-    {type:"single",m:0.0268,x:-171.59,y:-39.66,vx:0.6953,vy:-3.057,spin:-0.003,pinned:false},
-    {type:"single",m:0.014,x:104.93,y:-84.55,vx:2.305,vy:2.7798,spin:0.087,pinned:false},
-    {type:"single",m:0.0138,x:-161.07,y:-80.78,vx:1.4308,vy:-2.6803,spin:0.069,pinned:false},
-    {type:"single",m:0.0236,x:-82.39,y:-141.56,vx:2.7637,vy:-1.6543,spin:0.017,pinned:false},
-    {type:"single",m:0.0269,x:9.25,y:-152.11,vx:3.3616,vy:0.2562,spin:0.05,pinned:false},
-    {type:"single",m:0.0133,x:134.88,y:-25.22,vx:0.6831,vy:3.4528,spin:0.16,pinned:false},
-    {type:"single",m:0.0129,x:93.56,y:-122.66,vx:2.5878,vy:2.0118,spin:0.154,pinned:false},
-    {type:"single",m:0.015,x:93.02,y:-122.66,vx:2.5871,vy:1.9708,spin:0.161,pinned:false},
-    {type:"single",m:0.0189,x:-70.94,y:-157.68,vx:2.8589,vy:-1.2193,spin:0.054,pinned:false},
-    {type:"single",m:0.0297,x:50.74,y:-137.41,vx:3.19,vy:1.272,spin:-0.042,pinned:false},
-    {type:"single",m:0.0121,x:-142.67,y:-98.86,vx:1.8225,vy:-2.5657,spin:-0.019,pinned:false},
-    {type:"single",m:0.0255,x:118.68,y:-69.07,vx:1.8768,vy:3.0784,spin:0.155,pinned:false},
-    {type:"single",m:0.0131,x:121.65,y:-77.91,vx:1.7604,vy:2.9125,spin:0.138,pinned:false},
-    {type:"single",m:0.0256,x:137.67,y:-12.48,vx:0.2731,vy:3.4988,spin:0.162,pinned:false},
-    {type:"single",m:0.0231,x:-101.28,y:-143.35,vx:2.6044,vy:-1.7048,spin:-0.017,pinned:false},
-    {type:"single",m:0.021,x:24.23,y:-163.89,vx:3.1347,vy:0.3366,spin:0.128,pinned:false},
-    {type:"single",m:0.0253,x:120.59,y:-82.73,vx:1.9698,vy:2.8569,spin:0.167,pinned:false},
-    {type:"single",m:0.0248,x:20.48,y:-156.95,vx:3.3094,vy:0.3494,spin:0.051,pinned:false},
-    {type:"single",m:0.0237,x:-37.24,y:-156.77,vx:3.2279,vy:-0.7174,spin:-0.039,pinned:false},
-    {type:"single",m:0.0183,x:136.45,y:11.57,vx:-0.307,vy:3.5651,spin:0.125,pinned:false},
-    {type:"single",m:0.0156,x:75.94,y:149.91,vx:-2.8469,vy:1.4422,spin:0.037,pinned:false},
-    {type:"single",m:0.0271,x:139.51,y:32.46,vx:-0.8518,vy:3.2713,spin:0.168,pinned:false},
-    {type:"single",m:0.0207,x:86.55,y:-134.1,vx:2.7981,vy:1.7598,spin:0.175,pinned:false},
-    {type:"single",m:0.0156,x:138.66,y:-64.46,vx:1.4785,vy:2.9839,spin:0.181,pinned:false},
-    {type:"single",m:0.015,x:-106.68,y:-149.32,vx:2.4431,vy:-1.7741,spin:0.021,pinned:false},
-    {type:"single",m:0.0237,x:140.91,y:-27.49,vx:0.6415,vy:3.4102,spin:0.16,pinned:false},
-    {type:"single",m:0.0181,x:108.05,y:77,vx:-2.1158,vy:2.9139,spin:0.091,pinned:false},
-    {type:"single",m:0.026,x:128.84,y:-84.78,vx:1.8307,vy:2.7604,spin:0.178,pinned:false},
-    {type:"single",m:0.015,x:2.54,y:-169.03,vx:3.2021,vy:0.1217,spin:-0.018,pinned:false},
-    {type:"single",m:0.0274,x:85.57,y:-140.59,vx:2.9,vy:1.6115,spin:0.179,pinned:false},
-    {type:"single",m:0.0167,x:140.58,y:-62.56,vx:1.3753,vy:2.9997,spin:0.161,pinned:false},
-    {type:"single",m:0.0122,x:-23.83,y:-178.84,vx:2.9979,vy:-0.4348,spin:0.033,pinned:false},
-    {type:"single",m:0.0126,x:140.02,y:-71.18,vx:1.5055,vy:2.9283,spin:0.154,pinned:false},
-    {type:"single",m:0.0136,x:-25.35,y:-178.22,vx:3.0763,vy:-0.4282,spin:0.007,pinned:false},
-    {type:"single",m:0.0297,x:6.65,y:-174.87,vx:3.1117,vy:0.1655,spin:0.028,pinned:false},
-    {type:"single",m:0.0171,x:71.6,y:-154.77,vx:2.8213,vy:1.3147,spin:0.121,pinned:false},
-    {type:"single",m:0.0256,x:86.13,y:-128.55,vx:2.7129,vy:1.9282,spin:0.034,pinned:false},
-    {type:"single",m:0.0164,x:145.12,y:24.42,vx:-0.6972,vy:3.2655,spin:0.08,pinned:false},
-    {type:"single",m:0.0275,x:126.21,y:-98.82,vx:2.0002,vy:2.5908,spin:0.151,pinned:false},
-    {type:"single",m:0.0267,x:146.38,y:-61.19,vx:1.2207,vy:3.0523,spin:0.061,pinned:false},
-    {type:"single",m:0.0238,x:145.9,y:-60.87,vx:1.2024,vy:3.0247,spin:0.055,pinned:false},
-    {type:"single",m:0.0131,x:134.42,y:37.91,vx:-0.8903,vy:3.426,spin:0.118,pinned:false},
-    {type:"single",m:0.027,x:150.26,y:24.83,vx:-0.5605,vy:3.3042,spin:0.154,pinned:false},
-    {type:"single",m:0.0254,x:110.84,y:87.5,vx:-2.1498,vy:2.7631,spin:0.109,pinned:false},
-    {type:"single",m:0.024,x:118.2,y:-120.67,vx:2.317,vy:2.1944,spin:0.147,pinned:false},
-    {type:"single",m:0.0153,x:53.6,y:123.66,vx:-3.3264,vy:1.3509,spin:-0.001,pinned:false},
-    {type:"single",m:0.0174,x:137.32,y:-34.6,vx:0.6401,vy:3.5045,spin:0.034,pinned:false},
-    {type:"single",m:0.0238,x:148.07,y:25.56,vx:-0.5199,vy:3.3205,spin:0.085,pinned:false},
-    {type:"single",m:0.0107,x:152.53,y:-1.44,vx:0.1665,vy:3.3876,spin:0.11,pinned:false},
-    {type:"single",m:0.0198,x:92.48,y:-158.05,vx:2.5948,vy:1.5444,spin:0.137,pinned:false},
-    {type:"single",m:0.0258,x:156.72,y:-74.9,vx:1.525,vy:2.7398,spin:0.242,pinned:false},
-    {type:"single",m:0.011,x:165.28,y:-9.26,vx:0.2935,vy:3.2084,spin:0.173,pinned:false},
-    {type:"single",m:0.0134,x:-96.64,y:-181.14,vx:2.5356,vy:-1.4178,spin:-0.066,pinned:false},
-    {type:"single",m:0.0167,x:-40.83,y:-192.98,vx:2.9055,vy:-0.641,spin:-0.074,pinned:false},
-    {type:"single",m:0.0256,x:-75.22,y:-191.69,vx:2.6901,vy:-1.0906,spin:-0.083,pinned:false},
-    {type:"single",m:0.019,x:-37.47,y:-199.71,vx:2.8844,vy:-0.5176,spin:-0.141,pinned:false},
-    {type:"single",m:0.0206,x:-36.9,y:-199.74,vx:2.8374,vy:-0.5652,spin:-0.15,pinned:false},
-    {type:"single",m:0.0199,x:22.32,y:-197.82,vx:2.9012,vy:0.3336,spin:-0.023,pinned:false},
-    {type:"single",m:0.0192,x:-0.26,y:-210.68,vx:2.7861,vy:-0.0111,spin:0.229,pinned:false},
-    {type:"single",m:0.0293,x:48.69,y:-194.1,vx:2.846,vy:0.6745,spin:0.011,pinned:false},
-    {type:"single",m:0.026,x:-120.79,y:-162.62,vx:2.326,vy:-1.7277,spin:0.036,pinned:false},
-    {type:"single",m:0.0122,x:-1.33,y:-217.55,vx:2.8729,vy:-0.1118,spin:0.011,pinned:false},
-    {type:"single",m:0.027,x:0.59,y:-211.23,vx:2.8791,vy:-0.0287,spin:0.021,pinned:false},
-    {type:"single",m:0.0127,x:98.44,y:-183.19,vx:2.5897,vy:1.3017,spin:0.043,pinned:false},
-    {type:"single",m:0.0149,x:98.88,y:-183.22,vx:2.5899,vy:1.3189,spin:0.036,pinned:false},
-    {type:"single",m:0.0299,x:103.89,y:-178.37,vx:2.4672,vy:1.4579,spin:0.015,pinned:false},
-    {type:"single",m:0.0167,x:151.56,y:-127.26,vx:1.925,vy:2.2399,spin:0.113,pinned:false},
-    {type:"single",m:0.0222,x:103.3,y:-178.44,vx:2.4613,vy:1.4607,spin:-0.036,pinned:false},
-    {type:"single",m:0.0239,x:126.38,y:-166.75,vx:2.2823,vy:1.7214,spin:0.086,pinned:false},
-    {type:"single",m:0.0261,x:160.86,y:-124.6,vx:1.735,vy:2.3224,spin:-0.065,pinned:false},
-    {type:"single",m:0.0162,x:157.52,y:-142.37,vx:1.9901,vy:2.0549,spin:0.116,pinned:false},
-    {type:"single",m:0.0204,x:160.36,y:-123.32,vx:1.7715,vy:2.3056,spin:-0.139,pinned:false},
-    {type:"single",m:0.0228,x:195.13,y:-84.44,vx:1.2048,vy:2.5669,spin:0.254,pinned:false},
-    {type:"single",m:0.0154,x:194.28,y:-44.44,vx:0.6267,vy:2.8413,spin:0.165,pinned:false},
-    {type:"single",m:0.0184,x:189.93,y:-69.8,vx:1.0258,vy:2.7367,spin:0.107,pinned:false},
-    {type:"single",m:0.0143,x:195.62,y:-66.18,vx:0.9948,vy:2.7666,spin:0.15,pinned:false},
-    {type:"single",m:0.0247,x:196.68,y:-66.56,vx:0.8614,vy:2.7085,spin:0.131,pinned:false},
-    {type:"single",m:0.0131,x:208.01,y:-36.73,vx:0.5375,vy:2.8047,spin:0.2,pinned:false},
-    {type:"single",m:0.0165,x:200.51,y:21.87,vx:-0.2997,vy:2.9023,spin:0.172,pinned:false},
-    {type:"single",m:0.0183,x:209.16,y:-32.13,vx:0.4187,vy:2.7965,spin:0.164,pinned:false},
-    {type:"single",m:0.0153,x:198.98,y:47.27,vx:-0.6274,vy:2.8306,spin:0.223,pinned:false},
-    {type:"single",m:0.0216,x:184.69,y:73.78,vx:-1.1019,vy:2.7072,spin:0.141,pinned:false},
-    {type:"single",m:0.0192,x:198.42,y:72.68,vx:-0.8274,vy:2.7916,spin:0.257,pinned:false},
-    {type:"single",m:0.0188,x:200.05,y:80.39,vx:-0.9334,vy:2.6366,spin:0.297,pinned:false},
-    {type:"single",m:0.0281,x:183.79,y:88.63,vx:-1.2613,vy:2.6672,spin:0.147,pinned:false},
-    {type:"single",m:0.0278,x:181.38,y:87.43,vx:-1.323,vy:2.5152,spin:0.109,pinned:false},
-    {type:"single",m:0.0294,x:144.88,y:136.74,vx:-2.0104,vy:2.1501,spin:0.132,pinned:false},
-    {type:"single",m:0.0222,x:195.49,y:79.85,vx:-1.117,vy:2.6967,spin:0.125,pinned:false},
-    {type:"single",m:0.0256,x:113.33,y:162.83,vx:-2.416,vy:1.6788,spin:0.154,pinned:false},
-    {type:"single",m:0.0117,x:92.86,y:-188.47,vx:2.5502,vy:1.2565,spin:0.145,pinned:false},
-    {type:"single",m:0.0171,x:181.07,y:121.62,vx:-1.5574,vy:2.3209,spin:0.228,pinned:false},
-    {type:"single",m:0.0194,x:161.18,y:138.9,vx:-1.8771,vy:2.1361,spin:0.19,pinned:false},
-    {type:"single",m:0.0235,x:56.48,y:192.27,vx:-2.7912,vy:0.8526,spin:0.143,pinned:false},
-    {type:"single",m:0.0143,x:114.43,y:177.23,vx:-2.3825,vy:1.5599,spin:0.193,pinned:false},
-    {type:"single",m:0.0236,x:37.66,y:199.65,vx:-2.8396,vy:0.5517,spin:0.165,pinned:false},
-    {type:"single",m:0.0188,x:9.25,y:-205.04,vx:2.8748,vy:0.1297,spin:0.09,pinned:false},
-    {type:"single",m:0.0194,x:85.44,y:195.48,vx:-2.593,vy:1.1689,spin:0.185,pinned:false},
-    {type:"single",m:0.0288,x:-24.83,y:201.23,vx:-2.9408,vy:-0.2707,spin:0.137,pinned:false},
-    {type:"single",m:0.0234,x:8.26,y:209.4,vx:-2.8541,vy:0.1629,spin:0.164,pinned:false},
-    {type:"single",m:0.0273,x:-28.66,y:201.99,vx:-2.8392,vy:-0.4087,spin:-0.043,pinned:false},
-    {type:"single",m:0.0197,x:-28.69,y:201.44,vx:-2.8725,vy:-0.4067,spin:-0.081,pinned:false},
-    {type:"single",m:0.0262,x:-52.66,y:196.65,vx:-2.8043,vy:-0.7436,spin:0.115,pinned:false},
-    {type:"single",m:0.0133,x:-30.07,y:206.57,vx:-2.8285,vy:-0.4556,spin:0.043,pinned:false},
-    {type:"single",m:0.0165,x:-53.18,y:196.3,vx:-2.8056,vy:-0.8004,spin:0.091,pinned:false},
-    {type:"single",m:0.0264,x:-84.98,y:188.44,vx:-2.6555,vy:-1.1491,spin:0.101,pinned:false},
-    {type:"single",m:0.0116,x:-94.85,y:190.16,vx:-2.5447,vy:-1.2615,spin:0.126,pinned:false},
-    {type:"single",m:0.0289,x:-101.88,y:182.89,vx:-2.5151,vy:-1.3612,spin:0.101,pinned:false},
-    {type:"single",m:0.0194,x:-115.34,y:169.64,vx:-2.3984,vy:-1.6345,spin:0.01,pinned:false},
-    {type:"single",m:0.0277,x:-149.78,y:142.5,vx:-2.0368,vy:-2.0376,spin:0.082,pinned:false},
-    {type:"single",m:0.0136,x:-176.24,y:99.18,vx:-1.4558,vy:-2.496,spin:0.052,pinned:false},
-    {type:"single",m:0.0184,x:-186.42,y:62.62,vx:-0.9743,vy:-2.7725,spin:0.029,pinned:false},
-    {type:"single",m:0.0158,x:-150.16,y:163.18,vx:-2.1232,vy:-1.8137,spin:0.143,pinned:false},
-    {type:"single",m:0.0299,x:-155.69,y:163.22,vx:-2.0315,vy:-1.8298,spin:0.154,pinned:false},
-    {type:"single",m:0.03,x:-160.63,y:129.45,vx:-1.7824,vy:-2.2878,spin:-0.031,pinned:false},
-    {type:"single",m:0.0113,x:-174.68,y:125.24,vx:-1.6513,vy:-2.2826,spin:-0.003,pinned:false},
-    {type:"single",m:0.0288,x:-193.43,y:88.5,vx:-1.215,vy:-2.5523,spin:0.03,pinned:false},
-    {type:"single",m:0.0279,x:-206.04,y:59.01,vx:-0.8662,vy:-2.7013,spin:0.09,pinned:false},
-    {type:"single",m:0.0111,x:-204.01,y:53.44,vx:-0.6445,vy:-2.6713,spin:0.01,pinned:false},
-    {type:"single",m:0.0234,x:-203.73,y:50.92,vx:-0.6739,vy:-2.7575,spin:-0.015,pinned:false},
-    {type:"single",m:0.0148,x:-208.52,y:-8,vx:0.1121,vy:-2.8364,spin:0.029,pinned:false},
-    {type:"single",m:0.0132,x:-206.26,y:-52.2,vx:0.5898,vy:-2.7585,spin:0.094,pinned:false},
-    {type:"single",m:0.0249,x:-190.02,y:-61.73,vx:0.9353,vy:-2.7652,spin:-0.034,pinned:false},
-    {type:"single",m:0.0121,x:-174.34,y:-96.38,vx:1.4343,vy:-2.5236,spin:-0.018,pinned:false},
-    {type:"single",m:0.0174,x:-216.94,y:-15.76,vx:0.2053,vy:-2.7759,spin:0.007,pinned:false},
-    {type:"single",m:0.0139,x:-181.29,y:-86.64,vx:1.3314,vy:-2.6029,spin:-0.089,pinned:false},
-    {type:"single",m:0.0147,x:-220.63,y:-52.54,vx:0.5311,vy:-2.6798,spin:0.073,pinned:false},
-    {type:"single",m:0.0272,x:-194.06,y:-66.86,vx:1.0345,vy:-2.705,spin:-0.14,pinned:false},
-    {type:"single",m:0.0182,x:-155.58,y:-134.44,vx:1.9262,vy:-2.1604,spin:-0.006,pinned:false},
-    {type:"single",m:0.0284,x:-155.3,y:-133.97,vx:1.9342,vy:-2.1652,spin:-0.026,pinned:false},
-    {type:"single",m:0.0108,x:-105.58,y:-165.29,vx:2.5162,vy:-1.6044,spin:-0.075,pinned:false},
-    {type:"single",m:0.0291,x:-152.75,y:-139.38,vx:1.9127,vy:-2.1595,spin:-0.1,pinned:false},
-    {type:"single",m:0.0169,x:-66.11,y:-186.03,vx:2.7748,vy:-1.0306,spin:-0.07,pinned:false},
-    {type:"single",m:2,x:-213.98,y:207.67,vx:-1.6512,vy:-1.7088,spin:0.029,pinned:false}
   ],
   overlays:{rotationCurve:false,tempHistogram:false,field:false} },
 
@@ -1598,6 +1249,13 @@ function validatePreset(obj){
         if(!needNum(["m","x","y","vx","vy","spin"])) return;
         if(typeof b.pinned!=="boolean"){ bad(at+".pinned(boolean)が必要"); return; }
         const o={type:"single", m:MASS(b.m,"m"), x:CO(b.x,"x"), y:CO(b.y,"y"), vx:VEL(b.vx,"vx"), vy:VEL(b.vy,"vy"), spin:SPN(b.spin,"spin"), pinned:b.pinned};
+        // 第12便: 主星2層 — コア質量・コアスピン(任意。既定0=単層と等価。mc は負値も受理)
+        if(b.coreM!==undefined || b.coreSpin!==undefined){
+          if(b.coreM!==undefined && !isNum(b.coreM)){ bad(at+".coreM が数値ではありません"); return; }
+          if(b.coreSpin!==undefined && !isNum(b.coreSpin)){ bad(at+".coreSpin が数値ではありません"); return; }
+          o.coreM=isNum(b.coreM)? wc(b.coreM,-5000,5000,"coreM") : 0;
+          o.coreSpin=isNum(b.coreSpin)? wc(b.coreSpin,-20,20,"coreSpin") : 0;
+        }
         // E13(第11次裁定 保留分の実施): AI生成・インポートへ zonal を開放。
         // 偶数次 J2〜J12 のみ受理し、|J|≤0.1・refR 1〜5000・calib 0〜2 にクランプする
         if(b.zonal!==undefined){
@@ -1674,6 +1332,9 @@ function makeSim(){
     n:0, t:0, params:Object.assign({},DEFAULT_PHYSICS),
     world:{boundary:"none",size:0}, rays:null, overlays:{},
     m:null,x:null,y:null,vx:null,vy:null,spin:null,R:null, rotA:null,
+    // 第12便(2026-07-23): 主星2層 — コア質量・コアスピン(既定0=単層と厳密等価)。
+    // mEff=m+coreM(慣性・重力・W の実効質量)/ Rc=radiusScale·√|coreM|(コアの引きずり核半径)
+    coreM:null, coreSpin:null, mEff:null, Rc:null, rotAc:null, hasCore:false,
     pinned:null, railR:null, railAng:null, railOmega:null, railCx:null, railCy:null,
     uPx:null,uPy:null,hasU:null, tau:null, ax:null,ay:null, sumW:null,uAx:null,uAy:null, ds:null,
     dpx:null,dpy:null, pairD:null,
@@ -1684,6 +1345,7 @@ function makeSim(){
     S.n=n;
     const F=()=>new Float32Array(n);
     S.m=F();S.x=F();S.y=F();S.vx=F();S.vy=F();S.spin=F();S.R=F();S.rotA=F();
+    S.coreM=F();S.coreSpin=F();S.mEff=F();S.Rc=F();S.rotAc=F();   // 主星2層(第12便)
     S.uPx=F();S.uPy=F();S.tau=F();S.ax=F();S.ay=F();S.sumW=F();S.uAx=F();S.uAy=F();S.ds=F();
     S.dpx=F();S.dpy=F();
     S.pairD=new Float32Array(Math.max(1,n*(n-1)/2)); // 対距離キャッシュ(E6′反作用パスで再利用)
@@ -1705,7 +1367,8 @@ function makeSim(){
       if(dx*dx+dy*dy<(b.R+1)*(b.R+1)) return true; } return false; };
     for(const b of preset.bodies){
       if(b.type==="single"){
-        const o={m:b.m,x:b.x,y:b.y,vx:b.vx,vy:b.vy,spin:b.spin,pinned:b.pinned?1:0,railOmega:0};
+        const o={m:b.m,x:b.x,y:b.y,vx:b.vx,vy:b.vy,spin:b.spin,pinned:b.pinned?1:0,railOmega:0,
+          coreM:b.coreM||0, coreSpin:b.coreSpin||0};   // 主星2層(第12便。既定0=単層と等価)
         if(b.zonal) o.zonal=b.zonal;   // E13(第11次裁定): 扁平中心天体の帯状重力属性
         push(o); noteBig(o);
       } else if(b.type==="ring"){
@@ -1763,6 +1426,7 @@ function makeSim(){
     S.periDet=null; // 近点検出器は再構築でリセット(第11次裁定 保留分)
     P.forEach((o,i)=>{ S.m[i]=o.m; S.x[i]=o.x; S.y[i]=o.y; S.vx[i]=o.vx; S.vy[i]=o.vy;
       S.spin[i]=o.spin; S.pinned[i]=o.pinned; S.railOmega[i]=o.railOmega||0;
+      S.coreM[i]=o.coreM||0; S.coreSpin[i]=o.coreSpin||0;
       if(o.railOmega){ S.railR[i]=o.railR; S.railAng[i]=o.railAng; S.railCx[i]=o.railCx; S.railCy[i]=o.railCy; }
       if(o.zonal) S.zonal={i, refR:o.zonal.refR, J:o.zonal.J, calib:(o.zonal.calib||1), _A:null};
     });
@@ -1772,15 +1436,27 @@ function makeSim(){
     S.resPx=0; S.resPy=0; S.resL=0; S.radE=0; S.radL=0;
     S.curveBins=null; S.tempLR=[0,0]; S.histT=[];
   };
-  S.updateRadii = function(){ // R_i = radiusScale·√m (PHYSICS.md §2)
+  S.updateRadii = function(){ // R_i = radiusScale·√|m_eff| (PHYSICS.md §2。第12便: m_eff=m+coreM)
     const rs=S.params.radiusScale;
-    for(let i=0;i<S.n;i++) S.R[i]=rs*Math.sqrt(S.m[i]);
+    let hc=false;
+    for(let i=0;i<S.n;i++){
+      const mt=S.m[i]+S.coreM[i];
+      // 実効質量の下限 ±0.01(慣性の除算保護。負質量は実験用に符号を保持 — 第12便)
+      S.mEff[i]=(Math.abs(mt)<0.01)? (mt<0? -0.01 : 0.01) : mt;
+      S.R[i]=rs*Math.sqrt(Math.abs(S.mEff[i]));
+      S.Rc[i]=rs*Math.sqrt(Math.abs(S.coreM[i]));
+      if(S.coreM[i]!==0) hc=true;
+    }
+    S.hasCore=hc;   // コアなし(全 coreM=0)の宇宙は従来ループのまま(m=0 高速化)
   };
   // 1サブステップ(PHYSICS.md v1.1 §5 数値スキーム: ①全対 → ②粒子 → ③反作用対 → ④位置)
   S.step = function(dt){
     const n=S.n, p=S.params;
     if(!n){ S.t+=dt; return; }
-    const {m,x,y,vx,vy,spin,R,pinned,ax,ay,sumW,uAx,uAy,ds,dpx,dpy,pairD}=S;
+    // 第12便: m は実効質量 mEff=m+coreM の別名(慣性・重力源・W 源のすべてで一貫使用 —
+    // 運動量・角運動量の恒等式は全用途一貫なら保存される。coreM=0 なら mEff=m で従来と厳密等価)
+    const {mEff:m,x,y,vx,vy,spin,R,pinned,ax,ay,sumW,uAx,uAy,ds,dpx,dpy,pairD,coreSpin,Rc}=S;
+    const hasCore=S.hasCore;
     const eps=p.softening, eps2=eps*eps, G=p.G, q=p.q, kRep=p.kRep,
           muF=p.muF, gammaN=p.gammaN, kappaS=p.kappaS, D0=p.D0, kFrame=p.kFrame,
           etaRad=p.etaRad, pRad=p.pRad,
@@ -1788,7 +1464,7 @@ function makeSim(){
           // v1.20(E12): 測地線1PNモード(BOX_UNIVERSE §5・DERIVATIONS §15。第1段階: 静的大質量源・u=0)
           geo=(p.geoPN||0)>0, pnA=(p.pnAlpha!==undefined? p.pnAlpha : 1.5),
           invC2=geo? (p.lambdaPN!==undefined? p.lambdaPN : 1)/(p.cLight*p.cLight) : 0;
-    if(Math.abs(R[0]-p.radiusScale*Math.sqrt(m[0]))>1e-6) S.updateRadii(); // radiusScale変更の追従
+    if(Math.abs(R[0]-p.radiusScale*Math.sqrt(Math.abs(m[0])))>1e-6) S.updateRadii(); // radiusScale変更の追従
     ax.fill(0); ay.fill(0); sumW.fill(0); uAx.fill(0); uAy.fill(0); ds.fill(0);
     dpx.fill(0); dpy.fill(0);
     // レール粒子(pinned+omega)の位置・速度を先に更新
@@ -1842,10 +1518,15 @@ function makeSim(){
         let omj=0, omi=0;
         if(sj!==0){ const tt=Rj/(Rj+d); omj = (q===2)? sj*tt*tt : sj*Math.pow(tt,q); }
         if(si!==0){ const tt=Ri/(Ri+d); omi = (q===2)? si*tt*tt : si*Math.pow(tt,q); }
+        if(hasCore){ // 主星2層(第12便): コアは小さい半径 Rc の第2の引きずり核(A8)。
+                     // coreM=0 なら Rc=0 で寄与なし。hasCore=false の宇宙はこの分岐ごと素通り(高速化)
+          const scj=coreSpin[j]; if(scj!==0 && Rc[j]>0){ const tt=Rc[j]/(Rc[j]+d); omj += (q===2)? scj*tt*tt : scj*Math.pow(tt,q); }
+          const sci=coreSpin[i]; if(sci!==0 && Rc[i]>0){ const tt=Rc[i]/(Rc[i]+d); omi += (q===2)? sci*tt*tt : sci*Math.pow(tt,q); }
+        }
         uAx[i]+=wj*(vx[j]+omj*(-dy)); uAy[i]+=wj*(vy[j]+omj*(dx));
         uAx[j]+=wi*(vx[i]+omi*(dy));  uAy[j]+=wi*(vy[i]+omi*(-dx));
         // E5′ スピン斥力(対称化・中心力): F = kRep·μ·(ω_i²+ω_j²)·(r_i−r_j)
-        if(kRep>0 && (omi!==0||omj!==0)){
+        if(kRep>0 && (omi!==0||omj!==0) && Math.abs(mi+mj)>1e-9){   // 第12便: 負質量実験時の0除算保護
           const f=kRep*(mi*mj/(mi+mj))*(omi*omi+omj*omj);
           ax[i]+=f/mi*dx; ay[i]+=f/mi*dy;
           ax[j]-=f/mj*dx; ay[j]-=f/mj*dy;
@@ -1859,7 +1540,8 @@ function makeSim(){
           // 法線ばね(換算質量スケール+「軽い側の加速度≤8」の対称な力上限。
           // 上限を両側独立に掛けると作用反作用が破れ、めり込んだ粒子が
           // 重い天体を押し続ける「ロケット」になるため、必ず力で対称にキャップする)
-          const muM=mi*mj/(mi+mj);
+          const msum=mi+mj;
+          const muM=(Math.abs(msum)>1e-9)? mi*mj/msum : 0;   // 第12便: 負質量実験時の0除算保護
           let Fs=40*(sumR-d)*muM;
           const maxInv=Math.max(invMi,invMj);
           if(maxInv>0 && Fs*maxInv>8) Fs=8/maxInv;
@@ -1897,10 +1579,12 @@ function makeSim(){
         if(kappaS>0){
           const g=(sumR/(sumR+d)); const gg=g*g;
           if(gg>1e-4){
-            const Ii=0.5*mi*Ri*Ri, Ij=0.5*mj*Rj*Rj;
-            const c=kappaS*(sj-si)*gg/(Ii+Ij);
-            ds[i]+=c*Ij;
-            ds[j]-=c*Ii;
+            const Ii=0.5*mi*Ri*Ri, Ij=0.5*mj*Rj*Rj, IJ=Ii+Ij;
+            if(Math.abs(IJ)>1e-9){   // 第12便: 負質量実験時の0除算保護
+              const c=kappaS*(sj-si)*gg/IJ;
+              ds[i]+=c*Ij;
+              ds[j]-=c*Ii;
+            }
           }
         }
       }
@@ -1963,7 +1647,7 @@ function makeSim(){
         S.radE+=0.5*IiD*(s0D*s0D-spin[i]*spin[i]);
       }
       // E11 放射冷却(A12): Λ = η_rad·T^p、T = I·s²。|Δs| ≤ 0.5|s| にクランプ
-      if(etaRad>0 && spin[i]!==0){
+      if(etaRad>0 && spin[i]!==0 && m[i]>0){   // 第12便: 負質量(負の慣性)は放射冷却の対象外
         const Ii=0.5*m[i]*R[i]*R[i], s0=spin[i], T=Ii*s0*s0;
         let dsC=etaRad*Math.pow(T,pRad)*dt/(Ii*Math.abs(s0));
         const lim=0.5*Math.abs(s0); if(dsC>lim) dsC=lim;
@@ -1994,8 +1678,11 @@ function makeSim(){
             if(pinned[j]){ S.resPx-=rpx; S.resPy-=rpy; S.resL-=xi*rpy-yi*rpx; }
             else{
               vx[j]-=rpx/m[j]; vy[j]-=rpy/m[j];
-              const dsn=(dx*rpy-dy*rpx)/(Ii+Ij);  // 残余トルク n_ij を等角加速度で移譲
-              spin[i]-=dsn; spin[j]-=dsn;
+              const IJ=Ii+Ij;
+              if(Math.abs(IJ)>1e-9){                // 第12便: 負質量実験時の0除算保護
+                const dsn=(dx*rpy-dy*rpx)/IJ;       // 残余トルク n_ij を等角加速度で移譲
+                spin[i]-=dsn; spin[j]-=dsn;
+              }
             }
           }
           if(hasJ){ // j が受けた Δp_j の反作用をソース i へ(φ_ji = w_i(r_j)/W(r_j))
@@ -2004,8 +1691,11 @@ function makeSim(){
             if(pinned[i]){ S.resPx-=rpx; S.resPy-=rpy; S.resL-=x[j]*rpy-y[j]*rpx; }
             else{
               vx[i]-=rpx/mi; vy[i]-=rpy/mi;
-              const dsn=((x[j]-xi)*rpy-(y[j]-yi)*rpx)/(Ii+Ij);
-              spin[j]-=dsn; spin[i]-=dsn;
+              const IJ=Ii+Ij;
+              if(Math.abs(IJ)>1e-9){                // 第12便: 負質量実験時の0除算保護
+                const dsn=((x[j]-xi)*rpy-(y[j]-yi)*rpx)/IJ;
+                spin[j]-=dsn; spin[i]-=dsn;
+              }
             }
           }
         }
@@ -2025,6 +1715,7 @@ function makeSim(){
     const b=S.world;
     for(let i=0;i<n;i++){
       S.rotA[i]+=spin[i]*dt;   // v1.17: 表示用の累積回転角(大粒子のスポーク描画で回転方向を可視化)
+      if(hasCore && coreSpin[i]!==0) S.rotAc[i]+=coreSpin[i]*dt;   // 第12便: コアのスポーク角
       if(pinned[i]){ S.tauUpdate(i,dt); continue; }
       // 安全上限(発散防止): 速度100・スピン±40
       const vv2=vx[i]*vx[i]+vy[i]*vy[i];
@@ -2120,6 +1811,9 @@ function makeSim(){
 // ===== アプリ状態 =====
 const sim = makeSim();
 let running=false, currentPreset=null, basePhysics=null, selIdx=-1;
+// 第12便: A/B比較中も粒子編集を可能に — 選択粒子がどちらの宇宙かを保持(A=上/B=下)
+let selWorld="A";
+function selSimRef(){ return (ab && selWorld==="B")? ab.simB : sim; }
 let camX=0, camY=0, camScale=300, tempP90EMA=0.5, monitorOn=false;
 // v1.17: UI文字サイズ(1=標準/1.15=大/1.3=特大)。HTML側はCSS変数--uz、キャンバス側の
 // 文字・グラフは uiFontScale で追従し、拡大時はグラフ自体を拡大+下端余白を広げて
@@ -2550,7 +2244,7 @@ function render(){
     if(sx<-40||sx>cw+40||sy<-40||sy>ch+40) continue;
     const T=0.5*sim.m[i]*sim.R[i]*sim.R[i]*sim.spin[i]*sim.spin[i];
     const rr=Math.max(1.2,Math.min(sim.R[i]*z,30));
-    const col=tempColor(Math.min(1,Math.sqrt(T/Math.max(1e-4,tempP90EMA))));
+    const col=tempColor(Math.min(1,Math.sqrt(Math.max(0,T)/Math.max(1e-4,tempP90EMA))));   // 第12便: 負質量はT=0色
     if(rr>=7){ // 大きな天体はグロー付きで描く
       const g=ctx.createRadialGradient(sx,sy,rr*0.4,sx,sy,rr*2.4);
       g.addColorStop(0,col); g.addColorStop(1,"rgba(0,0,0,0)");
@@ -2567,6 +2261,20 @@ function render(){
         ctx.beginPath(); ctx.moveTo(sx+Math.cos(a)*rr*0.3, sy+Math.sin(a)*rr*0.3);
         ctx.lineTo(sx+Math.cos(a)*rr*0.92, sy+Math.sin(a)*rr*0.92); ctx.stroke(); }
       ctx.lineWidth=1;
+    }
+    // 第12便: 主星2層 — コア(coreM≠0)を内側の暗い円+白スポークで可視化(表面との差動回転が見える)
+    if(sim.coreM[i]!==0 && rr>=7){
+      const rc=Math.max(3,Math.min(sim.Rc[i]*z,rr*0.92));
+      ctx.fillStyle="rgba(10,12,24,0.55)";
+      ctx.beginPath(); ctx.arc(sx,sy,rc,0,7); ctx.fill();
+      if(Math.abs(sim.coreSpin[i])>1e-4){
+        const a0=sim.rotAc[i];
+        ctx.strokeStyle="rgba(255,255,255,0.5)"; ctx.lineWidth=Math.max(1,rc*0.12);
+        for(let k3=0;k3<3;k3++){ const a=a0+k3*2.0944;
+          ctx.beginPath(); ctx.moveTo(sx+Math.cos(a)*rc*0.25, sy+Math.sin(a)*rc*0.25);
+          ctx.lineTo(sx+Math.cos(a)*rc*0.88, sy+Math.sin(a)*rc*0.88); ctx.stroke(); }
+        ctx.lineWidth=1;
+      }
     }
     if(sim.pinned[i]){ ctx.strokeStyle="rgba(255,255,255,0.75)"; ctx.beginPath(); ctx.arc(sx,sy,rr+2,0,7); ctx.stroke(); }
   }
@@ -2591,7 +2299,8 @@ function render(){
     const Ti=0.5*sim.m[i]*sim.R[i]*sim.R[i]*sim.spin[i]*sim.spin[i];
     const lam=(Ti>1e-12)? fmt(sim.params.bM/Ti) : "—";
     ctx.font=(10*uiFontScale)+"px sans-serif"; ctx.fillStyle="#dfe4ff"; // v1.17: 文字サイズ追従
-    ctx.fillText(`m=${fmt(sim.m[i])} s=${fmt(sim.spin[i])} T=${fmt(Ti)} λ=${lam} ${T("hudClock")}=${(frac*100).toFixed(1)}%`,8,ch-10);
+    const coreTxt=(sim.coreM[i]!==0||sim.coreSpin[i]!==0)? ` mc=${fmt(sim.coreM[i])} sc=${fmt(sim.coreSpin[i])}` : "";  // 第12便
+    ctx.fillText(`m=${fmt(sim.m[i])}${coreTxt} s=${fmt(sim.spin[i])} T=${fmt(Ti)} λ=${lam} ${T("hudClock")}=${(frac*100).toFixed(1)}%`,8,ch-10);
   }
   // v1.21: スロット配置 — 複数グラフは右下から縦に積み、互いを隠さない(🌠merger)
   const slots=overlaySlots();
@@ -2658,7 +2367,7 @@ function drawWorldInto(S, y0, hgt, label, tbuf){
     if(px<-40||px>cw+40||py<y0-40||py>y0+hgt+40) continue;
     const Ti=0.5*S.m[i]*S.R[i]*S.R[i]*S.spin[i]*S.spin[i];
     const rr=Math.max(1.2,Math.min(S.R[i]*z,30));
-    ctx.fillStyle=tempColor(Math.min(1,Math.sqrt(Ti/p90)));
+    ctx.fillStyle=tempColor(Math.min(1,Math.sqrt(Math.max(0,Ti)/p90)));   // 第12便: 負質量はT=0色
     ctx.beginPath(); ctx.arc(px,py,rr,0,7); ctx.fill();
     if(rr>=7 && Math.abs(S.spin[i])>1e-4){ // v1.17: 回転方向スポーク(A/B側も同様)
       const a0=S.rotA[i];
@@ -2668,7 +2377,24 @@ function drawWorldInto(S, y0, hgt, label, tbuf){
         ctx.lineTo(px+Math.cos(a)*rr*0.92, py+Math.sin(a)*rr*0.92); ctx.stroke(); }
       ctx.lineWidth=1;
     }
+    if(S.coreM[i]!==0 && rr>=7){   // 第12便: 主星2層のコア(A/B側も同様)
+      const rc=Math.max(3,Math.min(S.Rc[i]*z,rr*0.92));
+      ctx.fillStyle="rgba(10,12,24,0.55)";
+      ctx.beginPath(); ctx.arc(px,py,rc,0,7); ctx.fill();
+      if(Math.abs(S.coreSpin[i])>1e-4){
+        const a0=S.rotAc[i];
+        ctx.strokeStyle="rgba(255,255,255,0.5)"; ctx.lineWidth=Math.max(1,rc*0.12);
+        for(let k3=0;k3<3;k3++){ const a=a0+k3*2.0944;
+          ctx.beginPath(); ctx.moveTo(px+Math.cos(a)*rc*0.25, py+Math.sin(a)*rc*0.25);
+          ctx.lineTo(px+Math.cos(a)*rc*0.88, py+Math.sin(a)*rc*0.88); ctx.stroke(); }
+        ctx.lineWidth=1;
+      }
+    }
     if(S.pinned[i]){ ctx.strokeStyle="rgba(255,255,255,0.75)"; ctx.beginPath(); ctx.arc(px,py,rr+2,0,7); ctx.stroke(); }
+    if(selIdx===i && S===selSimRef()){   // 第12便: A/B比較中の選択リング(選択された宇宙側にのみ描く)
+      ctx.strokeStyle="#59d499"; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.arc(px,py,Math.max(6,S.R[i]*z+5),0,7); ctx.stroke(); ctx.lineWidth=1;
+    }
   }
   // v1.19: 線の軌跡(A/B比較でも表示)
   if(S.overlays.trail && tbuf){
@@ -2863,7 +2589,9 @@ function cloneSimState(){ // 現在の sim の完全コピー(同一プリセッ
   const simB=makeSim(); simB.build(JSON.parse(JSON.stringify(currentPreset)));
   if(simB.n===sim.n){
     for(const k of ["m","x","y","vx","vy","spin","R","rotA","tau","uPx","uPy",
+      "coreM","coreSpin","mEff","Rc","rotAc",   // 第12便: 主星2層の状態も転写
       "railR","railAng","railOmega","railCx","railCy"]) simB[k].set(sim[k]);
+    simB.hasCore=sim.hasCore;
     simB.pinned.set(sim.pinned); simB.hasU.set(sim.hasU);
   }
   simB.t=sim.t; simB.resPx=sim.resPx; simB.resPy=sim.resPy; simB.resL=sim.resL;
@@ -2883,9 +2611,9 @@ function abStart(key, valB){
     ab.simB.params[key]=clamp(valB,c[0],c[1]); ab.simB.updateRadii();
     ab.lastKey=key;
   }
-  selIdx=-1; abTarget="A"; updateAbBtn(); updateAbTargetUI(); buildParamRows(); updateBodyEdit(); requestRender();
+  selIdx=-1; selWorld="A"; abTarget="A"; updateAbBtn(); updateAbTargetUI(); buildParamRows(); updateBodyEdit(); requestRender();
 }
-function abStop(){ ab=null; abTarget="A"; trailBufB=[]; updateAbBtn(); updateAbTargetUI(); buildParamRows(); updateBodyEdit(); requestRender(); }
+function abStop(){ ab=null; selIdx=-1; selWorld="A"; abTarget="A"; trailBufB=[]; updateAbBtn(); updateAbTargetUI(); buildParamRows(); updateBodyEdit(); requestRender(); }
 $("#btnAB").addEventListener("click",()=>{
   if(ab){ abStop(); notify(T("abStopped")); return; }   // A の状態を継続し B を破棄
   abStart();
@@ -3413,6 +3141,7 @@ const SYSTEM_PROMPT = `あなたは「仮想物理シミュレータ」のプリ
 - box: {type,n,cx,cy,w,h,mMin,mMax,spinMin,spinMax,vScale} — 幅w高さhの矩形にn個、ランダム方向に速さ〜vScale。
 - ring/disk/box には省略可の bulkVx,bulkVy(母集団の並進速度)を指定できる。移動する天体(vx,vyを持つ single)の周りに円盤・環を置くときは、必ず同じ値を bulkVx,bulkVy に与えて核と一体で動かすこと。
 - single には省略可の zonal(扁平中心天体の帯状重力補正 E13)を指定できる: {"refR":基準半径,"calib":1,"J":{"2":0.0163,"4":-0.0009}}。偶数次 J2〜J12 のみ・|J|≤0.1・refR:1〜5000・calib:0〜2。中心の大質量 pinned 粒子に付けると周回粒子の楕円軌道の近点が前進する(内側ほど速い差動近点移動 — 画面左上に実測/解析の近点移動が表示される)。土星なら J2≈0.0163。要望が扁平天体・歳差・近点移動のときだけ使う高度な属性で、通常のプリセットでは指定しない。
+- single には省略可の coreM,coreSpin(主星2層 — コアの質量とスピン)を指定できる。総質量は m+coreM。コアは半径 radiusScale·√coreM の第2の空間引きずり核になり、coreSpin は表面 spin と独立(差動回転)。coreM=0(既定)で従来の単層。要望がコア/深部回転・2層天体のときだけ使う高度な属性。
 
 # 例
 例1 要望「連星と、その周りを回る惑星たち」
@@ -3759,44 +3488,61 @@ function renderHelp(){
   cv.addEventListener("wheel",e=>{ e.preventDefault();
     camScale=clamp(camScale*(e.deltaY>0?1.1:0.9),20,3000); requestRender(); },{passive:false});
   function tapSelect(px,py){
-    if(ab) return; // A/B比較中は粒子選択なし(座標系が分割されるため)
     const rect=cv.getBoundingClientRect();
-    const wx=camX+((px-rect.left)-cw/2)/zoom(), wy=camY+((py-rect.top)-ch/2)/zoom();
-    let best=-1,bd=(30/zoom())*(30/zoom());
-    for(let i=0;i<sim.n;i++){ const dx=sim.x[i]-wx,dy=sim.y[i]-wy,d2=dx*dx+dy*dy;
+    const cx=px-rect.left, cy=py-rect.top;
+    let S=sim, world="A", z=zoom(), wx, wy;
+    if(ab){ // 第12便: A/B比較中も選択可 — タップ位置の半面(A=上/B=下)の宇宙から拾う
+      const hh=ch/2, inB=cy>=hh, y0=inB? hh : 0;
+      S=inB? ab.simB : sim; world=inB? "B" : "A";
+      z=Math.min(cw,hh)/2/camScale;   // drawWorldInto と同じ分割ビュー変換の逆写像
+      wx=camX+(cx-cw/2)/z; wy=camY+(cy-(y0+hh/2))/z;
+    } else {
+      wx=camX+(cx-cw/2)/z; wy=camY+(cy-ch/2)/z;
+    }
+    let best=-1,bd=(30/z)*(30/z);
+    for(let i=0;i<S.n;i++){ const dx=S.x[i]-wx,dy=S.y[i]-wy,d2=dx*dx+dy*dy;
       if(d2<bd){bd=d2;best=i;} }
-    selIdx=(best===selIdx)?-1:best;
+    selIdx=(best===selIdx && world===selWorld)?-1:best;
+    selWorld=world;
     updateBodyEdit();  // v1.17: 選択粒子の編集パネルを同期
     requestRender();   // v1.22: 停止中でも選択リングを即描画
   }
 })();
 
 // ===== v1.17: 選択粒子の編集パネル(質量・スピン・速度・固定を即時編集) =====
+// 第12便: A/B比較中も編集可(選択された宇宙 selSimRef() を編集)・2層情報(mc/sc)・m は負値も受理
 function updateBodyEdit(){
   const el=$("#bodyEdit");
-  if(selIdx<0||selIdx>=sim.n||ab){ el.style.display="none"; return; }
+  const S=selSimRef();
+  if(selIdx<0||selIdx>=S.n){ el.style.display="none"; return; }
   el.style.display="block";
   const i=selIdx;
-  $("#beM").value=fmt(sim.m[i]); $("#beS").value=fmt(sim.spin[i]);
-  $("#beVx").value=fmt(sim.vx[i]); $("#beVy").value=fmt(sim.vy[i]);
-  $("#bePin").checked=!!sim.pinned[i];
+  $("#beTitle").textContent=T("beTitle")+(ab? `(${selWorld})` : "");   // どちらの宇宙かを明示
+  $("#beM").value=fmt(S.m[i]); $("#beS").value=fmt(S.spin[i]);
+  $("#beMc").value=fmt(S.coreM[i]); $("#beSc").value=fmt(S.coreSpin[i]);
+  $("#beVx").value=fmt(S.vx[i]); $("#beVy").value=fmt(S.vy[i]);
+  $("#bePin").checked=!!S.pinned[i];
 }
 function beBind(id,fn){
   $(id).addEventListener("change",()=>{
-    if(selIdx<0||selIdx>=sim.n){ updateBodyEdit(); return; }
+    const S=selSimRef();
+    if(selIdx<0||selIdx>=S.n){ updateBodyEdit(); return; }
     const v=parseFloat($(id).value.replace(/[,、\s]/g,"").replace(/[−ー–—－]/g,"-"));  // v1.24: 全角マイナス等も受理
-    if(isFinite(v)){ fn(selIdx,v); setParamsDirty(true); requestRender(); }
+    if(isFinite(v)){ fn(S,selIdx,v); setParamsDirty(true); requestRender(); }
     updateBodyEdit();
   });
 }
-beBind("#beM",(i,v)=>{ sim.m[i]=clamp(v,0.01,5000); sim.updateRadii(); });
-beBind("#beS",(i,v)=>{ sim.spin[i]=clamp(v,-40,40); });
-beBind("#beVx",(i,v)=>{ sim.vx[i]=clamp(v,-100,100); });
-beBind("#beVy",(i,v)=>{ sim.vy[i]=clamp(v,-100,100); });
+beBind("#beM",(S,i,v)=>{ S.m[i]=clamp(v,-5000,5000); S.updateRadii(); });     // 第12便: 負質量も実験用に受理
+beBind("#beMc",(S,i,v)=>{ S.coreM[i]=clamp(v,-5000,5000); S.updateRadii(); }); // 主星2層: コア質量
+beBind("#beSc",(S,i,v)=>{ S.coreSpin[i]=clamp(v,-40,40); S.updateRadii(); });  // 主星2層: コアスピン(hasCore更新のためRadii経由)
+beBind("#beS",(S,i,v)=>{ S.spin[i]=clamp(v,-40,40); });
+beBind("#beVx",(S,i,v)=>{ S.vx[i]=clamp(v,-100,100); });
+beBind("#beVy",(S,i,v)=>{ S.vy[i]=clamp(v,-100,100); });
 $("#bePin").addEventListener("change",()=>{
-  if(selIdx<0||selIdx>=sim.n) return;
-  sim.pinned[selIdx]=$("#bePin").checked?1:0;
-  if(!$("#bePin").checked) sim.railOmega[selIdx]=0;  // 固定解除でレール駆動も解除
+  const S=selSimRef();
+  if(selIdx<0||selIdx>=S.n) return;
+  S.pinned[selIdx]=$("#bePin").checked?1:0;
+  if(!$("#bePin").checked) S.railOmega[selIdx]=0;  // 固定解除でレール駆動も解除
   setParamsDirty(true); requestRender();
 });
 $("#beClose").addEventListener("click",()=>{ selIdx=-1; updateBodyEdit(); });
@@ -4238,6 +3984,9 @@ window.HP = { sim, loadPreset, allPresets, validatePreset, SYSTEM_PROMPT, extrac
     fieldRes:Q_FRES[qLevel()], rayFactor:Q_RAY[qLevel()], trailEvery:Q_TREC[qLevel()]}),
   setLang:(l)=>{ LANG=(l==="en")?"en":"ja"; localStorage.setItem("hp_lang",LANG); applyLang(); },
   running:()=>running, setRunning:(v)=>{running=v;updatePlayBtn();},
+  // 第12便: 粒子選択のQA用(A/B比較中の編集検証 — world: "A"|"B")
+  selectBody:(i,world)=>{ selWorld=(world==="B")?"B":"A"; selIdx=i; updateBodyEdit(); },
+  selInfo:()=>({selIdx, selWorld}), selSimRef,
   tick:(frames)=>{ for(let f=0;f<frames;f++){ const k=Math.max(1,Math.round(SUBSTEPS*sim.params.timeScale)); for(let s2=0;s2<Math.min(k,24);s2++) sim.step(DT); } render(); } };
 
 // ===== 起動 =====
