@@ -1103,21 +1103,39 @@ const BUILTIN_PRESETS = [
   overlays:{rotationCurve:false,tempHistogram:false,field:false} },
 
 { id:"earthMoon", name:"地球と月", emoji:"🌍", group:"天体の物語",
-  description:"月が地球のまわりを公転する二体デモ(第15便で公転版に再設計)。質量比は現実どおり m月/m地球=0.0123。月は同期自転 — spin を公転角速度 ω=0.01393 に一致させてあり、スポーク(車輪の輻)の同じ面が常に地球を向き続ける(潮汐固定)。地球は2層コア(mc/m=0.33 ≈ 現実の核質量比・sc/s=1.05)を持ち、タップして sc/s を変えると空間引きずり(A8)経由で月軌道への効きが変わる。円軌道速度は E6′ 込みの実測較正 v=1.063×ケプラー値(Plummer軟化込み)— 4周で半径ドリフト0.16%・同期誤差0.31°/周を機械検証(QA behavior.earthMoon)。地球の自転(0.05)は E6′ 安定域に収めた較正値 — 現実の比(月の27.32倍)では引きずり風が重力(E4)を超えて軌道が崩れる(実測記録・ロードマップ参照)。kFrame=0 とのA/B比較で引きずりの寄与が分離できる。地球は pinned の展示系。Kt=10000 は物理対応ロック Kt=c²/G の成立値。",
-  en:{name:"Earth & Moon", description:"A two-body demo with the Moon orbiting Earth (redesigned as an orbiting version in the 15th shipment). The mass ratio is the real one: mMoon/mEarth=0.0123. The Moon rotates synchronously \u2014 its spin equals the orbital angular velocity \u03c9=0.01393, so the same face of its spoke wheel always points at Earth (tidal locking). Earth has a two-layer core (mc/m=0.33 \u2248 the real core-mass fraction, sc/s=1.05); tap it and change sc/s to see how the frame dragging (A8) acting on the Moon's orbit changes. The circular-orbit speed is calibrated with E6\u2032 included: v=1.063\u00d7 the (Plummer-softened) Keplerian value \u2014 radius drift 0.16% and sync error 0.31\u00b0/orbit over 4 orbits, machine-verified (QA behavior.earthMoon). Earth's spin (0.05) is calibrated into the E6\u2032-stable regime \u2014 at the real ratio (27.32\u00d7 the Moon's) the drag wind exceeds gravity (E4) and the orbit collapses (measured; see roadmap). A/B-compare with kFrame=0 to isolate the drag contribution. Earth is pinned (exhibit system). Kt=10000 satisfies the GR-calibration lock Kt=c\u00b2/G."},
+  description:"月が地球のまわりを公転する二体デモ(第15便で公転版・第16便=第17次レビューでコアを現実値へ較正)。質量比は現実どおり m月/m地球=0.0123。月は同期自転 — spin を実測公転角速度 ω=0.013908 に一致させてあり、スポーク(車輪の輻)の同じ面が常に地球を向き続ける(潮汐固定)。コアは観測値: 地球 mc/m=0.325(PREM系の全コア質量比 32.5%)・月 mc/m=0.0168(月レーザー測距の 1.59〜1.77% の中央値)。sc/s=1.0(剛体回転)は中立既定 — 現実の地球内核の差動は ≈1.0000008 と桁違いに小さく、固定比で表せる値ではないため(第17次レビュー)。地球をタップして sc/s を上げると空間引きずり(A8)経由で月軌道への効きが試せる。円軌道速度は E6′ 込みの実測較正 v=1.063×ケプラー値(Plummer軟化込み)— 4周で半径ドリフト0.09%・同期維持を機械検証(QA behavior.earthMoon)。地球の自転(0.05)は E6′ 安定域に収めた較正値 — 現実の比(月の27.4倍)では引きずり風が重力(E4)を超えて軌道が崩れる(実測記録)。現実の自転比で見たい場合は 🌕(自由二体・kFrame=0)を参照。地球は pinned の展示系。Kt=10000 は物理対応ロック Kt=c²/G の成立値。",
+  en:{name:"Earth & Moon", description:"A two-body demo with the Moon orbiting Earth (cores calibrated to observed values after the 17th review). The mass ratio is the real one: mMoon/mEarth=0.0123. The Moon rotates synchronously \u2014 its spin equals the measured orbital angular velocity \u03c9=0.013908, so the same face of its spoke wheel always points at Earth (tidal locking). Cores use observed values: Earth mc/m=0.325 (PREM whole-core mass fraction) and Moon mc/m=0.0168 (lunar-laser-ranging median of 1.59\u20131.77%). sc/s=1.0 (rigid rotation) is the neutral default \u2014 the real inner-core differential is \u22481.0000008, orders of magnitude smaller than any fixed teaching value (17th review). Tap Earth and raise sc/s to probe the frame-dragging (A8) effect on the Moon's orbit. The circular-orbit speed is calibrated with E6\u2032 included: v=1.063\u00d7 Keplerian (Plummer-softened) \u2014 radius drift 0.09% over 4 orbits, sync machine-verified (QA behavior.earthMoon). Earth's spin (0.05) is calibrated into the E6\u2032-stable regime \u2014 at the real ratio (27.4\u00d7 the Moon's) the drag wind exceeds gravity (E4) and the orbit collapses (measured). For the real spin ratio, see \ud83c\udf15 (free two-body, kFrame=0). Earth is pinned (exhibit system). Kt=10000 satisfies the GR-calibration lock Kt=c\u00b2/G."},
   activeParams:["kFrame","G","D0"],
   camera:{scale:220}, world:{boundary:"none",size:0},
   physics:{G:1, D0:2, kFrame:1, q:2, kRep:0, muF:0, gammaN:0, kappaS:0, Kt:10000,
     cLight:100, bM:1, etaRad:0, pRad:4, gravityX:0, gravityY:0, geoPN:0, lambdaPN:1, pnAlpha:1.5, radiusScale:1.5, softening:2, timeScale:5},
-  bodies:[ // 第15便(2026-07-23 原仮定者指示): 月を公転させ、地球にコアを設定し、自転の同期が
-           // 安定するパラメータを実測較正。掃引結果(2026-07-23): v=1.063×√[G·M·D²/(D²+ε²)^1.5]
-           // =2.5053(D=180)で 4.4周の半径 179.8〜180.1(ドリフト0.16%)・実測 ω=0.013931
-           // (T=451)・spin月=ω の同期誤差 0.31°/周・NaN なし。地球自転は 0.05(E6′ 安定域 —
-           // 現実比 27.32×ω では回転フレーム風が実効重力の約2倍になり月が墜落する・実測)。
-           // 自由二体(地球非固定)は E6′ の D0 リザーバ移譲で重心が漂流(t2000 で 150)するため
-           // 地球 pinned の展示系とした。粒子の並び: 0=地球(2層コア), 1=月(同期自転)
-    {type:"single", m:1000, coreMR:0.33, coreSR:1.05, x:0,y:0, vx:0,vy:0, spin:0.05, pinned:true},
-    {type:"single", m:12.3, x:180,y:0, vx:0,vy:2.5053, spin:0.013931, pinned:false}
+  bodies:[ // 第15便: 公転版(v=1.063×軟化ケプラー値の実測較正・地球 pinned の展示系 —
+           // 自由二体は D0 リザーバ移譲で重心漂流のため。詳細はロードマップ)。
+           // 第16便(第17次レビュー 推奨A): コアを観測値へ — 地球 mc/m=0.325(PREM 32.5%)・
+           // 月 mc/m=0.0168(LLR 1.59〜1.77% の中央値)・sc/s=1.0(中立 — 現実の内核差動
+           // ≈1.0000008 に対し 1.05 は過大)。コア差動項ゼロ化に伴い ω を再実測(0.013931→
+           // 0.013908)し月 spin を追随。検証: t2000(4.4周)で r=179.996〜180.163・NaN なし。
+           // 粒子の並び: 0=地球(2層コア), 1=月(2層コア・同期自転)
+    {type:"single", m:1000, coreMR:0.325, coreSR:1.0, x:0,y:0, vx:0,vy:0, spin:0.05, pinned:true},
+    {type:"single", m:12.3, coreMR:0.0168, coreSR:1.0, x:180,y:0, vx:0,vy:2.5053, spin:0.013908, pinned:false}
+  ],
+  overlays:{rotationCurve:false,tempHistogram:false,field:false,trail:true} },
+
+{ id:"earthMoonFree", name:"地球と月(自由二体・物理比)", emoji:"🌕", group:"天体の物語",
+  description:"地球を固定しない重心系の二体問題(第16便=第17次レビュー 推奨B)。kFrame=0 の純ニュートン対照 — E6′ 引きずりを切ると spin は軌道に影響しないため、現実の自転比をそのまま入れられる: 地球 spin=0.3609(月の公転の27.4倍=実比)・月は同期自転 spin=ω=0.013174。質量比 0.0123・コアも観測値(地球 mc/m=0.325・月 mc/m=0.0168)。重心を原点に置き全運動量 0 の閉鎖系(外部拘束なし — 保存則が系内で閉じる)。機械検証: t=5000(10.5周)で半径 179.97〜180.02(0.03%)・重心移動 0.001 未満・同期誤差 0.31°/周(QA behavior.earthMoonFree)。A/B比較で kFrame=1 にすると引きずり(A8)の風が強すぎて軌道が崩れる — 🌍(展示版)が自転を安定域へ圧縮している理由が、その対比で見える。重力(E4)は Plummer 軟化込みの円軌道速度で初期化。",
+  en:{name:"Earth & Moon (Free Two-Body)", description:"A barycentric two-body problem with nothing pinned (17th review, proposal B). With kFrame=0 (pure Newtonian control) spin does not affect orbits, so the REAL spin ratio can be used directly: Earth spin=0.3609 (27.4\u00d7 the Moon's orbital rate \u2014 the actual ratio) and the Moon rotates synchronously at spin=\u03c9=0.013174. Mass ratio 0.0123; cores at observed values (Earth mc/m=0.325, Moon mc/m=0.0168). Initialized at the barycenter with zero total momentum \u2014 a closed system with no external constraint. Machine-verified: over t=5000 (10.5 orbits) the separation stays 179.97\u2013180.02 (0.03%), the center of mass moves less than 0.001, and the sync error is 0.31\u00b0/orbit (QA behavior.earthMoonFree). A/B-compare with kFrame=1: the drag wind (A8) destabilizes the orbit \u2014 which is exactly why \ud83c\udf0d (the exhibit version) compresses Earth's spin into the stable regime. Gravity (E4) uses the Plummer-softened circular speed."},
+  activeParams:["G","kFrame","D0"],
+  camera:{scale:220}, world:{boundary:"none",size:0},
+  physics:{G:1, D0:2, kFrame:0, q:2, kRep:0, muF:0, gammaN:0, kappaS:0, Kt:10000,
+    cLight:100, bM:1, etaRad:0, pRad:4, gravityX:0, gravityY:0, geoPN:0, lambdaPN:1, pnAlpha:1.5, radiusScale:1.5, softening:2, timeScale:5},
+  bodies:[ // 第16便(第17次レビュー 推奨B — ChatGPT §7 の導出値を実エンジンで追認):
+           // 重心座標 xE=−D·mM/MT・xM=+D·mE/MT(D=180)、全運動量0の速度配分、
+           // vRel=√[G·MT·D²/(D²+ε²)^1.5]=2.371254(kFrame=0 なので f 補正不要)。
+           // 実測: t5000(10.48周)r=179.974〜180.020・重心移動最大0.0009・同期誤差0.31°/周。
+           // 自転は実比: 地球=27.39646523×ω=0.360911・月=ω=0.013174(同期)。
+           // 粒子の並び: 0=地球, 1=月
+    {type:"single", m:1000, coreMR:0.325, coreSR:1.0, x:-2.187105191,y:0, vx:0,vy:-0.028812128, spin:0.360911060, pinned:false},
+    {type:"single", m:12.300037, coreMR:0.0168, coreSR:1.0, x:177.812894809,y:0, vx:0,vy:2.342442349, spin:0.013173636, pinned:false}
   ],
   overlays:{rotationCurve:false,tempHistogram:false,field:false,trail:true} },
 
