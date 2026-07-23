@@ -1,6 +1,6 @@
 {
- "commit": "e55e835f7a2d412d4c9c39f5b672576394e60672",
- "date": "2026-07-23T00:44:57.173Z",
+ "commit": "86bdb8860979c36f2e3639fe29ab7d403e928b5e",
+ "date": "2026-07-23T02:44:15.705Z",
  "fast": false,
  "target": "beta/index.html",
  "run": {
@@ -17,7 +17,7 @@
   "playwright": "1.61.1",
   "platform": "linux/x64"
  },
- "total": 131,
+ "total": 132,
  "failed": 0,
  "pass": true,
  "results": [
@@ -634,7 +634,7 @@
   {
    "id": "pwa.sw-offline",
    "pass": true,
-   "detail": "SW=true アセット200=true 名前空間dfm-beta-*=true(dfm-beta-v1.28-b5) オフライン再読込=true"
+   "detail": "SW=true アセット200=true 名前空間dfm-beta-*=true(dfm-beta-v1.28-b6) オフライン再読込=true"
   },
   {
    "id": "pwa.sw-fail-ui",
@@ -659,12 +659,17 @@
   {
    "id": "core.twolayer",
    "pass": true,
-   "detail": "🎯 n=301 core=900/0.0525 R/Rc=69.7/54.0 2層分割等価=0(<1e-9) mc=0高速パス=true&等価0 sc=2効果=154.14(>0.1) 負質量NaNなし=true"
+   "detail": "🎯 n=301 core=270/0.0525 R/Rc=69.7/29.6 剛体回転分割等価=0(<1e-9) コア静止差=2.8e-1(>1e-4) mc=0高速パス=true&等価0 sc=2効果=55.84(>0.1) 負質量NaNなし=true"
   },
   {
    "id": "core.ab-body-edit",
    "pass": true,
    "detail": "B選択表示=true(選択粒子の編集(B)) m(B)=-2受理=true A非波及=true mc(B)=50/mc(A)=0 sc(A)=1.5/sc(B)=0.00 終了で選択解除=true"
+  },
+  {
+   "id": "behavior.saturnLayered",
+   "pass": true,
+   "detail": "t≈600: 帯内=99.0%(≥95%) 落下=0.0%(≤2%) 散逸=0.0%(≤5%) 平均|spin|=0.140(<0.5) 帯中央値=107/149/178 sc=0との帯中央値差(t150)=0.48(≤8)"
   },
   {
    "id": "ui.landscape",
