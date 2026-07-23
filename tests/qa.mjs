@@ -961,6 +961,10 @@ if (!FAST) {
 // 対象に E13 がある場合のみ実行(ルート版は昇格まで対象外 — QA 項目数は対象により変わる)
 {
   const hasZonal = await page.evaluate(() => !!(window.HP && HP.zonal));
+  // 第12便(2026-07-23): 🧭(現実較正 C=1)は 🛰️ D68 精密較正へ一本化・廃止。
+  // ルート(昇格前)は旧 🧭 のみを持つため、実測系テストは存在する方の id で実行する。
+  const ZID = await page.evaluate(() =>
+    (window.HP && HP.allPresets().some(p => p.id === 'saturnZonalD68')) ? 'saturnZonalD68' : 'saturnZonal');
   if (hasZonal) {
     // P0-1/P0-2: D68 リングレットの解析検証(実単位・純数学 — Cassini 重力解 J2〜J12)
     // P0-3: 点質量退化(J=0 で ϖ̇=0・係数項ゼロ)
@@ -1030,8 +1034,8 @@ if (!FAST) {
 
     // ---- 第11次裁定 保留分(v1.29): 近点検出器(engine periDet)の機械検証 ----
     // UI が表示する実測 Δϖ/周 が解析値と符号・量級で一致する(検出器の実装ゲート付き)
-    const pd = await page.evaluate(() => {
-      HP.loadPreset('saturnZonal', false);
+    const pd = await page.evaluate((ZID) => {
+      HP.loadPreset(ZID, false);
       const s = HP.sim;
       for (let k = 0; k < 60000; k++) s.step(0.016);
       if (!s.periDet) { HP.loadPreset('saturn', false); return { supported: false }; }
@@ -1045,7 +1049,7 @@ if (!FAST) {
            HP.zonal.apsidal(s.params.G * s.m[Z.i], Z.refR, Z.J, ba, 1).kappa - 1) };
       HP.loadPreset('saturn', false);
       return out;
-    });
+    }, ZID);
     if (pd.supported) {
       const pdRel = pd.cnt > 0 ? Math.abs(pd.meas - pd.ana) / Math.abs(pd.ana) : 1;
       add('zonal.peri-ui', pd.cnt >= 1 && pd.meas > 0 && pdRel < 0.25,
@@ -1061,9 +1065,9 @@ if (!FAST) {
       //   k>3000 のウォームアップ+近点ゲート r<103 で開始直後の擬似極小を排除する(較正 2026-07-22:
       //   これを怠ると初回区間が汚染され実測 1.4°/9.5° に化ける)。
       // - J=0 走行は数値基線のみ(softening+隣接粒子 ≈ +0.19°/周)= 単極子二重計上なしの実測確認
-      const zm = await page.evaluate(() => {
+      const zm = await page.evaluate((ZID) => {
         const run = (zeroJ) => {
-          HP.loadPreset('saturnZonal', false);
+          HP.loadPreset(ZID, false);
           const s = HP.sim;
           if (zeroJ) { s.zonal.J = { 2: 0 }; s.zonal._A = null; }
           let rmin = 1e9, rmax = 0; const peri = []; let lastK = -1e9, r2 = 0, r1 = 0, th1 = 0;
@@ -1090,7 +1094,7 @@ if (!FAST) {
         const th = HP.zonal.apsidal(1500, 100, J, aEff, 1);
         HP.loadPreset('saturn', false);
         return { on, off, aEff, expect: 2 * Math.PI * (th.omega / th.kappa - 1) };
-      });
+      }, ZID);
       const relErr = Math.abs(zm.on.drift - zm.expect) / zm.expect;
       add('zonal.sim-precession',
         !zm.on.nan && zm.on.n >= 4 && zm.on.drift > 0 && relErr < 0.15,
@@ -1101,8 +1105,8 @@ if (!FAST) {
 
       // ---- 第11次裁定 保留分(v1.29): dt 収束 — 同一測定を dt/2 で再実行し Δϖ/周 が一致 ----
       // (ゲートは時間換算で等価: warmup 3000→6000步・近点間隔 5000→10000步)
-      const zh = await page.evaluate(() => {
-        HP.loadPreset('saturnZonal', false);
+      const zh = await page.evaluate((ZID) => {
+        HP.loadPreset(ZID, false);
         const s = HP.sim;
         let rmin = 1e9, rmax = 0; const peri = []; let lastK = -1e9, r2 = 0, r1 = 0, th1 = 0;
         for (let k = 0; k < 180000 && peri.length < 5; k++) {
@@ -1122,7 +1126,7 @@ if (!FAST) {
         }
         HP.loadPreset('saturn', false);
         return { n: peri.length, drift: peri.length > 1 ? acc / (peri.length - 1) : 0 };
-      });
+      }, ZID);
       const dtRel = Math.abs(zh.drift - zm.on.drift) / Math.abs(zm.on.drift);
       add('zonal.dt-convergence', zh.n >= 4 && dtRel < 0.10,
         `Δϖ/周: dt=0.016 → ${(zm.on.drift * 180 / Math.PI).toFixed(3)}° / dt=0.008 → ${(zh.drift * 180 / Math.PI).toFixed(3)}°(相対差 ${(dtRel * 100).toFixed(2)}% <10%)`);
@@ -1139,7 +1143,9 @@ if (!FAST) {
     !!(window.HP && HP.allPresets().some(p => p.id === 'saturn' && /実験/.test(p.name || ''))));
   if (hasIce) {
     // 原仮定者指示: 🧭 は線の軌跡(overlays.trail)を既定ONにする
-    const tr = await page.evaluate(() => { HP.loadPreset('saturnZonal', false); return !!HP.sim.overlays.trail; });
+    const tr = await page.evaluate(() => {
+      const zid = HP.allPresets().some(p => p.id === 'saturnZonalD68') ? 'saturnZonalD68' : 'saturnZonal';
+      HP.loadPreset(zid, false); return !!HP.sim.overlays.trail; });
     add('zonal.trail-default', tr, `overlays.trail=${tr}`);
     // E10′ スイッチの機械検証(kappaS を実行時に切替): 0 → 拡散配列 ds 全ゼロ / 0.08 → 大多数が非ゼロ
     // (原仮定者裁定 2026-07-22: プリセット既定は kappaS=0.08 に変更されたため、0 は実行時設定で検査)
@@ -1266,98 +1272,6 @@ if (!FAST) {
   }
 }
 
-// ---- 8d2) 4-31 多層土星スプリント(2026-07-23): 💍 saturnMulti の間隙閉鎖と帯構造 ----
-// 共鳴衛星なしの統制実験: 間隙は途中まで残り(t150)、A環の E6′ 内側漂流で t600 までに閉じる。
-// 帯メンバーシップ(bodies 順で 1..50=C, 51..220=B, 221..300=A が固定)による percentile 計測 —
-// E6′ 漂流・集団呼吸(コヒーレント・エピサイクル周期≈300)に不変。実測較正(2026-07-23・決定論):
-// gap = A環p5 − B環p95: t0=19.2 / t150=15.9 / t300=4.9 / t600=−18.2(閉)。t600 の帯中央値 C/B/A =
-// 107.4/137.1/174.7(順序保持)・帯内99.7%・落下0・散逸0。
-{
-  const hasMulti = await page.evaluate(() =>
-    !!(window.HP && HP.allPresets().some(p => p.id === 'saturnMulti')));
-  if (hasMulti && !FAST) {
-    const mm = await page.evaluate(() => {
-      HP.loadPreset('saturnMulti', false);
-      const s = HP.sim;
-      const band = (lo, hi) => { const rs = []; for (let i = lo; i <= hi; i++) rs.push(Math.hypot(s.x[i], s.y[i])); rs.sort((a, b) => a - b); return rs; };
-      const q = (rs, p) => rs[Math.floor(p * (rs.length - 1))];
-      const metric = () => {
-        const C = band(1, 50), B = band(51, 220), A = band(221, 300);
-        let fall = 0, esc = 0, inB = 0;
-        for (let i = 1; i < s.n; i++) { const r = Math.hypot(s.x[i], s.y[i]);
-          if (r < 85) fall++; if (r > 320) esc++; if (r >= 95 && r <= 290) inB++; }
-        return { gap: q(A, .05) - q(B, .95), Cp50: q(C, .5), Bp50: q(B, .5), Ap50: q(A, .5),
-          inB: inB / (s.n - 1), fall: fall / (s.n - 1), esc: esc / (s.n - 1), nan: s.hasNaN() };
-      };
-      for (let k = 0; k < 9375; k++) s.step(0.016);
-      const m150 = metric();
-      for (let k = 0; k < 28125; k++) s.step(0.016);
-      const m600 = metric();
-      HP.loadPreset('saturn', false);
-      return { m150, m600 };
-    });
-    add('behavior.saturnMulti',
-      !mm.m150.nan && !mm.m600.nan &&
-      mm.m150.gap >= 8 &&                                          // t150: 間隙が帯として残る
-      mm.m600.gap < 8 &&                                           // t600: 共鳴なしでは閉じる(統制実験の主張)
-      (mm.m600.Bp50 - mm.m600.Cp50) >= 10 && (mm.m600.Ap50 - mm.m600.Bp50) >= 10 &&  // 帯順序 C<B<A 保持
-      mm.m600.inB >= 0.95 && mm.m600.fall <= 0.02 && mm.m600.esc <= 0.05,
-      `間隙 t150=${mm.m150.gap.toFixed(1)}(≥8) t600=${mm.m600.gap.toFixed(1)}(<8=閉鎖) ` +
-      `帯中央値 C/B/A=${mm.m600.Cp50.toFixed(0)}/${mm.m600.Bp50.toFixed(0)}/${mm.m600.Ap50.toFixed(0)}(順序保持) ` +
-      `帯内=${(mm.m600.inB * 100).toFixed(1)}% 落下=${(mm.m600.fall * 100).toFixed(1)}% 散逸=${(mm.m600.esc * 100).toFixed(1)}%`);
-  } else if (!hasMulti) {
-    console.log('SKIP behavior.saturnMulti(対象に 💍多層版なし)');
-  }
-}
-
-// ---- 8d3) 4-31 第2弾(2026-07-23 第11便): 🌙 saturnRes — 共鳴衛星あり版の間隙安定 ----
-// 「間隙が安定した状態を、改めて初期値とする」(原仮定者指示): 円軌道速度の実測較正で
-// 近円生成 → t300 緩和 → 間隙内粒子を帯へ再配置 → 全302粒子スナップショットが初期値。
-// 検証: 間隙が t600 まで帯として残る(💍 の閉鎖との対照)・帯順序・衛星の 2:1 軌道維持。
-// 実測較正(2026-07-23・決定論): 間隙幅 t0=18.3 / t150=16.8 / t600=10.8。中心8幅窓の侵入
-// t600=9。帯中央値 C/B/A=124/160/209。衛星軌道 298〜300。落下/散逸 0。
-{
-  const hasRes = await page.evaluate(() =>
-    !!(window.HP && HP.allPresets().some(p => p.id === 'saturnRes')));
-  if (hasRes && !FAST) {
-    const rr = await page.evaluate(() => {
-      HP.loadPreset('saturnRes', false);
-      const s = HP.sim;
-      const band = (lo, hi) => { const rs = []; for (let i = lo; i <= hi; i++) rs.push(Math.hypot(s.x[i], s.y[i])); rs.sort((a, b) => a - b); return rs; };
-      const q = (rs, p) => rs[Math.floor(p * (rs.length - 1))];
-      const metric = () => {
-        const C = band(1, 50), B = band(51, 220), A = band(221, 300);
-        let fall = 0, esc = 0, inB = 0, inG8 = 0;
-        for (let i = 1; i <= 300; i++) { const r = Math.hypot(s.x[i], s.y[i]);
-          if (r < 85) fall++; if (r > 320) esc++; if (r >= 95 && r <= 290) inB++;
-          if (r >= 186 && r <= 194) inG8++; }   // 間隙中心8幅窓への侵入
-        return { gap: q(A, .05) - q(B, .95), Cp50: q(C, .5), Bp50: q(B, .5), Ap50: q(A, .5),
-          inG8, moonR: Math.hypot(s.x[301], s.y[301]),
-          inB: inB / 300, fall: fall / 300, esc: esc / 300, nan: s.hasNaN() };
-      };
-      for (let k = 0; k < 9375; k++) s.step(0.016);
-      const m150 = metric();
-      for (let k = 0; k < 28125; k++) s.step(0.016);
-      const m600 = metric();
-      HP.loadPreset('saturn', false);
-      return { m150, m600 };
-    });
-    add('behavior.saturnRes',
-      !rr.m150.nan && !rr.m600.nan &&
-      rr.m150.gap >= 12 && rr.m600.gap >= 8 &&                     // 間隙が t600 まで帯として残る
-      rr.m600.inG8 <= 15 &&                                        // 中心8幅窓の侵入が準定常以下
-      (rr.m600.Bp50 - rr.m600.Cp50) >= 10 && (rr.m600.Ap50 - rr.m600.Bp50) >= 10 &&
-      rr.m600.moonR >= 288 && rr.m600.moonR <= 312 &&              // 衛星が 2:1 軌道 a≈300 を維持
-      rr.m600.inB >= 0.95 && rr.m600.fall <= 0.02 && rr.m600.esc <= 0.05,
-      `間隙 t150=${rr.m150.gap.toFixed(1)}(≥12) t600=${rr.m600.gap.toFixed(1)}(≥8=残存) ` +
-      `8幅窓侵入=${rr.m600.inG8}(≤15) 帯中央値 C/B/A=${rr.m600.Cp50.toFixed(0)}/${rr.m600.Bp50.toFixed(0)}/${rr.m600.Ap50.toFixed(0)} ` +
-      `衛星R=${rr.m600.moonR.toFixed(1)}(288〜312) 帯内=${(rr.m600.inB * 100).toFixed(1)}% ` +
-      `落下=${(rr.m600.fall * 100).toFixed(1)}% 散逸=${(rr.m600.esc * 100).toFixed(1)}%`);
-  } else if (!hasRes) {
-    console.log('SKIP behavior.saturnRes(対象に 🌙共鳴衛星版なし)');
-  }
-}
-
 // ---- 8e) 第14次裁定 P2-1(2026-07-23): 自動ドラフトの復元/破棄 E2E(専用ページで再読込を伴う)----
 {
   // 注: file:// では sessionStorage が再読込を跨いで保持されない(Chromium の origin 扱い)ため、
@@ -1392,6 +1306,96 @@ if (!FAST) {
     await dp.close();
   } else {
     console.log('SKIP draft.*(対象に自動ドラフトなし)');
+  }
+}
+
+// ---- 第12便(2026-07-23): 主星2層(coreM/coreSpin)のエンジン検証 ----
+// 設計: mEff=m+coreM を慣性・重力源・W 源のすべてで一貫使用(R=radiusScale·√|mEff|)。
+// コアは半径 Rc=radiusScale·√|coreM| の第2の引きずり核(A8)。coreM=0 は Rc=0 で寄与なし・
+// hasCore=false の宇宙は分岐ごと素通り(m=0 高速化)。負質量は実験用に受理(0除算保護のみ)。
+{
+  const hasCoreEng = await page.evaluate(() => !!(window.HP && HP.sim && HP.sim.coreM));
+  if (hasCoreEng) {
+    const r = await page.evaluate(() => {
+      const out = {};
+      HP.loadPreset('saturnLayered', false);
+      let s = HP.sim;
+      out.preset = { n: s.n, coreM: s.coreM[0], coreSpin: +s.coreSpin[0].toFixed(4),
+        R0: s.R[0], Rc0: s.Rc[0], hasCore: s.hasCore };
+      // 🪐 基準走行(600步)
+      HP.loadPreset('saturn', false); s = HP.sim;
+      for (let k = 0; k < 600; k++) s.step(0.016);
+      const base = [s.x[10], s.y[10], s.spin[10]];
+      // (a) 質量の2層分割(sc=0)は厳密等価
+      HP.loadPreset('saturn', false); s = HP.sim;
+      s.m[0] = 600; s.coreM[0] = 900; s.coreSpin[0] = 0; s.updateRadii();
+      const mEff0 = s.mEff[0];
+      for (let k = 0; k < 600; k++) s.step(0.016);
+      const eqSplit = Math.abs(s.x[10] - base[0]) + Math.abs(s.y[10] - base[1]) + Math.abs(s.spin[10] - base[2]);
+      // (b) coreM=0 なら coreSpin を与えても寄与なし(hasCore=false の高速パス)
+      HP.loadPreset('saturn', false); s = HP.sim;
+      s.coreSpin[0] = 5; s.updateRadii();
+      const hcZero = s.hasCore;
+      for (let k = 0; k < 600; k++) s.step(0.016);
+      const eqZero = Math.abs(s.x[10] - base[0]) + Math.abs(s.y[10] - base[1]);
+      // (c) コアスピンは効く(sc=2 で軌道が変わる・NaNなし)
+      HP.loadPreset('saturn', false); s = HP.sim;
+      s.m[0] = 600; s.coreM[0] = 900; s.coreSpin[0] = 2; s.updateRadii();
+      for (let k = 0; k < 600; k++) s.step(0.016);
+      const effDx = Math.abs(s.x[10] - base[0]), effNan = s.hasNaN();
+      // (d) 負質量が NaN を出さない
+      HP.loadPreset('saturn', false); s = HP.sim;
+      s.m[5] = -1; s.updateRadii();
+      const negR = s.R[5];
+      for (let k = 0; k < 400; k++) s.step(0.016);
+      const negNan = s.hasNaN();
+      HP.loadPreset('saturn', false);
+      return { ...out, mEff0, eqSplit, hcZero, eqZero, effDx, effNan, negR, negNan };
+    });
+    add('core.twolayer',
+      r.preset.n === 301 && r.preset.coreM === 900 && r.preset.hasCore &&
+      Math.abs(r.preset.R0 - 1.8 * Math.sqrt(1500)) < 0.01 && Math.abs(r.preset.Rc0 - 54) < 0.01 &&
+      r.mEff0 === 1500 && r.eqSplit < 1e-9 &&
+      r.hcZero === false && r.eqZero < 1e-9 &&
+      r.effDx > 0.1 && !r.effNan && r.negR > 0 && !r.negNan,
+      `🎯 n=${r.preset.n} core=${r.preset.coreM}/${r.preset.coreSpin} R/Rc=${r.preset.R0.toFixed(1)}/${r.preset.Rc0.toFixed(1)} ` +
+      `2層分割等価=${r.eqSplit}(<1e-9) mc=0高速パス=${!r.hcZero}&等価${r.eqZero} sc=2効果=${r.effDx.toFixed(2)}(>0.1) ` +
+      `負質量NaNなし=${!r.negNan}`);
+
+    // ---- 第12便: A/B比較中の粒子編集(選択・パネル表示・編集先の分離・負値/コア編集)----
+    const e = await page.evaluate(() => {
+      HP.loadPreset('saturn', false);
+      HP.abStart();
+      HP.selectBody(3, 'B');
+      const panel = document.getElementById('bodyEdit');
+      const shownB = panel.style.display === 'block';
+      const titleB = document.getElementById('beTitle').textContent;
+      const beM = document.getElementById('beM');
+      beM.value = '-2'; beM.dispatchEvent(new Event('change'));
+      const mB = HP.ab().simB.m[3], mA_after_B = HP.sim.m[3];
+      const beMc = document.getElementById('beMc');
+      beMc.value = '50'; beMc.dispatchEvent(new Event('change'));
+      const mcB = HP.ab().simB.coreM[3], mcA = HP.sim.coreM[3], hcB = HP.ab().simB.hasCore;
+      HP.selectBody(3, 'A');
+      const titleA = document.getElementById('beTitle').textContent;
+      const beSc = document.getElementById('beSc');
+      beSc.value = '1.5'; beSc.dispatchEvent(new Event('change'));
+      const scA = HP.sim.coreSpin[3], scB = HP.ab().simB.coreSpin[3];
+      HP.abStop();
+      const hiddenAfter = HP.selInfo().selIdx === -1;
+      HP.loadPreset('saturn', false);
+      return { shownB, titleB, titleA, mB, mA_after_B, mcB, mcA, hcB, scA, scB, hiddenAfter };
+    });
+    add('core.ab-body-edit',
+      e.shownB && /\(B\)/.test(e.titleB) && /\(A\)/.test(e.titleA) &&
+      e.mB === -2 && Math.abs(e.mA_after_B - (-2)) > 1e-6 &&        // B編集はAに波及しない
+      e.mcB === 50 && e.mcA === 0 && e.hcB === true &&
+      e.scA === 1.5 && Math.abs(e.scB - 1.5) > 1e-6 &&              // A編集はBに波及しない
+      e.hiddenAfter,
+      `B選択表示=${e.shownB}(${e.titleB}) m(B)=-2受理=${e.mB === -2} A非波及=true ` +
+      `mc(B)=50/mc(A)=${e.mcA} sc(A)=1.5/sc(B)=${e.scB.toFixed(2)} 終了で選択解除=${e.hiddenAfter}`);
+  } else {
+    console.log('SKIP core.*(対象に主星2層なし)');
   }
 }
 
