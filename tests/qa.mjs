@@ -1460,7 +1460,7 @@ if (!FAST) {
       const em = await page.evaluate(() => {
         HP.loadPreset('earthMoon', false);
         const s = HP.sim;
-        const core = { mcr: s.coreMR[0], scr: s.coreSR[0], spinM: s.spin[1] };
+        const core = { mcr: s.coreMR[0], scr: s.coreSR[0], mcrM: s.coreMR[1], spinM: s.spin[1] };
         let rMin = 1e9, rMax = 0, phi = 0;
         let prev = Math.atan2(s.y[1] - s.y[0], s.x[1] - s.x[0]);
         for (let k = 0; k < 56250; k++) {   // t=900 ≒ 2周
@@ -1480,14 +1480,56 @@ if (!FAST) {
       });
       const emSpinRel = Math.abs(em.spinM - em.omMeas) / em.omMeas;
       add('behavior.earthMoon',
-        !em.nan && Math.abs(em.mcr - 0.33) < 1e-6 && Math.abs(em.scr - 1.05) < 1e-6 &&   // Float32格納の丸め許容
+        !em.nan &&
+        Math.abs(em.mcr - 0.325) < 1e-6 && Math.abs(em.scr - 1.0) < 1e-6 &&   // 第16便: コア観測値(Float32丸め許容)
+        Math.abs(em.mcrM - 0.0168) < 1e-6 &&                                   // 月コア(LLR 中央値)
         em.rMin >= 180 * 0.98 && em.rMax <= 180 * 1.02 &&        // 円軌道が ±2% で維持
         em.orbits > 1.5 &&                                        // 2周走行の確認
         em.syncPerOrbit <= 2 &&                                   // 潮汐固定: 同期誤差 ≤2°/周
         emSpinRel < 0.05,                                         // spin月 ≈ 実測 ω(±5%)
         `🌍 t≈900(${em.orbits.toFixed(2)}周): r=${em.rMin.toFixed(1)}〜${em.rMax.toFixed(1)}(180±2%) ` +
         `同期誤差=${em.syncPerOrbit.toFixed(2)}°/周(≤2) spin月/ω実測 相対差=${(emSpinRel * 100).toFixed(1)}%(<5%) ` +
-        `地球コア mc/m=${em.mcr}/sc/s=${em.scr} NaNなし=${!em.nan}`);
+        `コア 地球=${em.mcr.toFixed(3)}/${em.scr}・月=${em.mcrM.toFixed(4)} NaNなし=${!em.nan}`);
+
+      // ---- 第16便(第17次レビュー 推奨B): 🌕 自由二体・物理比 — 重心系の長時間安定 ----
+      // kFrame=0 の純ニュートン対照(spin は軌道に影響しない → 実自転比 27.4× をそのまま使用)。
+      // 実測較正(2026-07-23): t5000(10.48周)r=179.974〜180.020・重心移動最大0.0009・
+      // 同期誤差0.31°/周(ChatGPT 第17次の独立 Python 計算と実エンジンが一致)。
+      const ef = await page.evaluate(() => {
+        HP.loadPreset('earthMoonFree', false);
+        const s = HP.sim;
+        const pins = s.pinned[0] + s.pinned[1];
+        const spinRatio = s.spin[0] / s.spin[1];
+        const MT = s.m[0] + s.m[1];
+        const cx0 = (s.m[0]*s.x[0] + s.m[1]*s.x[1]) / MT, cy0 = (s.m[0]*s.y[0] + s.m[1]*s.y[1]) / MT;
+        let rMin = 1e9, rMax = 0, phi = 0, comMax = 0;
+        let prev = Math.atan2(s.y[1]-s.y[0], s.x[1]-s.x[0]);
+        for (let k = 0; k < 312500; k++) {   // t=5000 ≒ 10.5周
+          s.step(0.016);
+          const rr = Math.hypot(s.x[1]-s.x[0], s.y[1]-s.y[0]);
+          if (rr < rMin) rMin = rr; if (rr > rMax) rMax = rr;
+          const a = Math.atan2(s.y[1]-s.y[0], s.x[1]-s.x[0]);
+          let d = a - prev; while (d > Math.PI) d -= 2*Math.PI; while (d < -Math.PI) d += 2*Math.PI;
+          phi += d; prev = a;
+          const cx = (s.m[0]*s.x[0] + s.m[1]*s.x[1]) / MT, cy = (s.m[0]*s.y[0] + s.m[1]*s.y[1]) / MT;
+          const cd = Math.hypot(cx-cx0, cy-cy0); if (cd > comMax) comMax = cd;
+        }
+        const orbits = phi / (2*Math.PI);
+        const out = { pins, spinRatio, rMin, rMax, orbits, comMax,
+          syncPerOrbit: (Math.abs(s.rotA[1]-phi)*180/Math.PI)/orbits, nan: s.hasNaN() };
+        HP.loadPreset('saturn', false);
+        return out;
+      });
+      add('behavior.earthMoonFree',
+        !ef.nan && ef.pins === 0 &&                               // 両天体とも自由(閉鎖系)
+        Math.abs(ef.spinRatio - 27.39646523) < 0.01 &&            // 実自転比 27.4×
+        ef.rMin >= 180 * 0.99 && ef.rMax <= 180 * 1.01 &&         // 半径 180±1%
+        ef.orbits > 10 &&
+        ef.comMax < 0.01 &&                                       // 重心が動かない(全運動量0)
+        ef.syncPerOrbit <= 2,
+        `🌕 t≈5000(${ef.orbits.toFixed(2)}周): r=${ef.rMin.toFixed(2)}〜${ef.rMax.toFixed(2)}(180±1%) ` +
+        `重心移動=${ef.comMax.toFixed(4)}(<0.01) 自転比=${ef.spinRatio.toFixed(2)}(実比27.40) ` +
+        `同期誤差=${ef.syncPerOrbit.toFixed(2)}°/周(≤2) NaNなし=${!ef.nan}`);
     }
   } else {
     console.log('SKIP core.*(対象に主星2層なし)');
