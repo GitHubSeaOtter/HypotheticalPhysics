@@ -1,6 +1,6 @@
 {
- "commit": "f71630d95c3047cf51e816c58357a9f739260c31",
- "date": "2026-07-23T18:34:35.591Z",
+ "commit": "9dda4b1df5a544997cf69d2527e4f410200a7145",
+ "date": "2026-07-24T05:15:24.671Z",
  "fast": false,
  "target": "beta/index.html",
  "run": {
@@ -17,70 +17,70 @@
   "playwright": "1.61.1",
   "platform": "linux/x64"
  },
- "total": 141,
+ "total": 142,
  "failed": 0,
  "pass": true,
- "durationMs": 473373,
+ "durationMs": 756391,
  "results": [
   {
    "id": "syntax",
    "pass": true,
    "detail": "",
-   "ms": 39
+   "ms": 76
   },
   {
    "id": "version.sync",
    "pass": true,
    "detail": "APP_VERSION=1.29 package.json=1.29.0",
-   "ms": 4
+   "ms": 8
   },
   {
    "id": "slider.covers-builtins",
    "pass": true,
    "detail": "",
-   "ms": 3
+   "ms": 7
   },
   {
    "id": "prompt.physics-keys",
    "pass": true,
    "detail": "defaults欠落=[] few-shot欠落=[]",
-   "ms": 1
+   "ms": 2
   },
   {
    "id": "builtin.explicit-physics",
    "pass": true,
    "detail": "",
-   "ms": 2
+   "ms": 4
   },
   {
    "id": "docs.no-preset-count",
    "pass": true,
    "detail": "",
-   "ms": 0
+   "ms": 1
   },
   {
    "id": "docs.no-qa-count",
    "pass": true,
    "detail": "",
-   "ms": 1
+   "ms": 0
   },
   {
    "id": "docs.preset-table-sync",
    "pass": true,
    "detail": "27 ids",
-   "ms": 0
+   "ms": 3
   },
   {
    "id": "docs.gravity-params",
    "pass": true,
    "detail": "",
-   "ms": 1
+   "ms": 0
   },
   {
    "id": "verify.V1",
    "pass": true,
    "detail": "|ΔP|/P_scale=4.50e-6 |ΔL|/L_scale=2.43e-6 (< 1e-3)",
-   "ms": 3426
+   "ms": 5660
   },
   {
    "id": "verify.V2",
@@ -164,169 +164,169 @@
    "id": "preset.gclock",
    "pass": true,
    "detail": "n=4",
-   "ms": 9
+   "ms": 16
   },
   {
    "id": "preset.grcal",
    "pass": true,
    "detail": "n=3",
-   "ms": 15
+   "ms": 22
   },
   {
    "id": "preset.mercury",
    "pass": true,
    "detail": "n=2",
-   "ms": 10
+   "ms": 17
   },
   {
    "id": "preset.galaxy",
    "pass": true,
    "detail": "n=381",
-   "ms": 6355
+   "ms": 9102
   },
   {
    "id": "preset.darkrotor",
    "pass": true,
    "detail": "n=401",
-   "ms": 6667
+   "ms": 5775
   },
   {
    "id": "preset.projectile",
    "pass": true,
    "detail": "n=4",
-   "ms": 36
+   "ms": 41
   },
   {
    "id": "preset.lensing",
    "pass": true,
    "detail": "n=2",
-   "ms": 10
+   "ms": 14
   },
   {
    "id": "preset.spinlens",
    "pass": true,
    "detail": "n=1",
-   "ms": 12
+   "ms": 16
   },
   {
    "id": "preset.blens",
    "pass": true,
    "detail": "n=2",
-   "ms": 10
+   "ms": 19
   },
   {
    "id": "preset.gas",
    "pass": true,
    "detail": "n=240",
-   "ms": 741
+   "ms": 1065
   },
   {
    "id": "preset.pressure",
    "pass": true,
    "detail": "n=240",
-   "ms": 697
+   "ms": 1035
   },
   {
    "id": "preset.conduction",
    "pass": true,
    "detail": "n=28",
-   "ms": 23
+   "ms": 40
   },
   {
    "id": "preset.coolrace",
    "pass": true,
    "detail": "n=3",
-   "ms": 9
+   "ms": 15
   },
   {
    "id": "preset.phase",
    "pass": true,
    "detail": "n=195",
-   "ms": 466
+   "ms": 682
   },
   {
    "id": "preset.convection",
    "pass": true,
    "detail": "n=278",
-   "ms": 961
+   "ms": 1378
   },
   {
    "id": "preset.buoyancy",
    "pass": true,
    "detail": "n=280",
-   "ms": 676
+   "ms": 1083
   },
   {
    "id": "preset.saturnZonalD68",
    "pass": true,
    "detail": "n=11",
-   "ms": 23
+   "ms": 36
   },
   {
    "id": "preset.saturn",
    "pass": true,
    "detail": "n=301",
-   "ms": 2206
+   "ms": 3680
   },
   {
    "id": "preset.saturnLayered",
    "pass": true,
    "detail": "n=301",
-   "ms": 2389
+   "ms": 3832
   },
   {
    "id": "preset.earthMoon",
    "pass": true,
    "detail": "n=2",
-   "ms": 18
+   "ms": 17
   },
   {
    "id": "preset.earthMoonFree",
    "pass": true,
    "detail": "n=2",
-   "ms": 26
+   "ms": 10
   },
   {
    "id": "preset.binary",
    "pass": true,
    "detail": "n=242",
-   "ms": 1873
+   "ms": 3022
   },
   {
    "id": "preset.fig8",
    "pass": true,
    "detail": "n=3",
-   "ms": 7
+   "ms": 10
   },
   {
    "id": "preset.counterring",
    "pass": true,
    "detail": "n=281",
-   "ms": 747
+   "ms": 1053
   },
   {
    "id": "preset.merger",
    "pass": true,
    "detail": "n=352",
-   "ms": 3411
+   "ms": 5195
   },
   {
    "id": "preset.collapse",
    "pass": true,
    "detail": "n=260",
-   "ms": 1373
+   "ms": 2146
   },
   {
    "id": "preset.snowline",
    "pass": true,
    "detail": "n=222",
-   "ms": 953
+   "ms": 1496
   },
   {
    "id": "i18n.presets-en",
    "pass": true,
    "detail": "",
-   "ms": 12
+   "ms": 14
   },
   {
    "id": "i18n.toggle",
@@ -338,7 +338,7 @@
    "id": "fewshot.validate",
    "pass": true,
    "detail": "[{\"i\":0,\"ok\":true,\"w\":0},{\"i\":1,\"ok\":true,\"w\":0},{\"i\":2,\"ok\":true,\"w\":0},{\"i\":3,\"ok\":true,\"w\":0},{\"i\":4,\"ok\":true,\"w\":0}]",
-   "ms": 11
+   "ms": 12
   },
   {
    "id": "fewshot.bh-capture",
@@ -350,13 +350,13 @@
    "id": "compat.kLens",
    "pass": true,
    "detail": "",
-   "ms": 2
+   "ms": 3
   },
   {
    "id": "import.formats",
    "pass": true,
    "detail": "added=5/5",
-   "ms": 20
+   "ms": 29
   },
   {
    "id": "import.content-dedup",
@@ -392,7 +392,7 @@
    "id": "new.gclock",
    "pass": true,
    "detail": "err=1.1e-5",
-   "ms": 15994
+   "ms": 25681
   },
   {
    "id": "new.coolrace",
@@ -416,13 +416,13 @@
    "id": "behavior.buoyancy",
    "pass": true,
    "detail": "分離(重-軽の平均y差)=76.8 (>20)",
-   "ms": 34838
+   "ms": 54124
   },
   {
    "id": "merger.bulk-velocity",
    "pass": true,
    "detail": "|v̄円盤−v核|=0.232 (<0.35 — 回転サンプリング残差込み)",
-   "ms": 1
+   "ms": 0
   },
   {
    "id": "collapse.rotation",
@@ -434,7 +434,7 @@
    "id": "theory.refs-all",
    "pass": true,
    "detail": "",
-   "ms": 21
+   "ms": 16
   },
   {
    "id": "theory.panel",
@@ -446,7 +446,7 @@
    "id": "ext.detect",
    "pass": true,
    "detail": "{\"gcPin\":4,\"f8Pin\":0,\"cvBath\":true,\"shown\":true,\"closed\":true}",
-   "ms": 17
+   "ms": 15
   },
   {
    "id": "ext.panel",
@@ -458,7 +458,7 @@
    "id": "grcal.clocks",
    "pass": true,
    "detail": "τ/t 地上=0.9200 衛星=0.9713 err=9.0e-6/1.2e-5 衛星>地上=true",
-   "ms": 5
+   "ms": 9
   },
   {
    "id": "grcal.calib-text",
@@ -476,7 +476,7 @@
    "id": "label.gravity-notation",
    "pass": true,
    "detail": "",
-   "ms": 1
+   "ms": 2
   },
   {
    "id": "params.direct-input",
@@ -488,13 +488,13 @@
    "id": "display.trail-toggle",
    "pass": true,
    "detail": "",
-   "ms": 0
+   "ms": 1
   },
   {
    "id": "speed.multiplier",
    "pass": true,
    "detail": "",
-   "ms": 1
+   "ms": 0
   },
   {
    "id": "saves.default-name",
@@ -518,7 +518,7 @@
    "id": "params.desc-all",
    "pass": true,
    "detail": "ja欠落=なし en欠落=なし",
-   "ms": 539
+   "ms": 519
   },
   {
    "id": "params.desc-toggle",
@@ -554,7 +554,7 @@
    "id": "activeParams.all",
    "pass": true,
    "detail": "全内蔵で宣言済み",
-   "ms": 9
+   "ms": 7
   },
   {
    "id": "activeParams.ui",
@@ -566,25 +566,25 @@
    "id": "render.on-demand",
    "pass": true,
    "detail": "停止500msの描画=0回(0) 操作後=1回(≥1)",
-   "ms": 1007
+   "ms": 1010
   },
   {
    "id": "cache.rays-field",
    "pass": true,
-   "detail": "描画43回の間に 光線再積分=0(≤2) フィールド再計算=0(≤2)",
-   "ms": 1058
+   "detail": "描画42回の間に 光線再積分=0(≤2) フィールド再計算=0(≤2)",
+   "ms": 1005
   },
   {
    "id": "divergence.undo",
    "pass": true,
    "detail": "snapshot=true 停止=true ボタン=true 復元=true",
-   "ms": 3811
+   "ms": 3812
   },
   {
    "id": "ab.edit-target",
    "pass": true,
    "detail": "トグル表示=true B編集=true A表示値=true A編集=true",
-   "ms": 15
+   "ms": 16
   },
   {
    "id": "ab.display-sync",
@@ -608,19 +608,19 @@
    "id": "physlock.kt-derive",
    "pass": true,
    "detail": "OFF時Kt=300(条件外バッジ=true) ON時=3600 cLight30追随=900 Kt直編集=900/表示900 G=0クランプ=10000(近似=true) 解除後=300",
-   "ms": 9
+   "ms": 11
   },
   {
    "id": "time.step-accounting",
    "pass": true,
    "detail": "低負荷=800/800 過負荷=2400/2400 繰越最大=24≤24 バースト=48/48",
-   "ms": 6
+   "ms": 9
   },
   {
    "id": "paper.v1-convergence",
    "pass": true,
    "detail": "dt=0.016: P=4.5e-6 L=2.4e-6 / dt=0.008: P=1.3e-5 L=1.5e-5 / dt=0.004: P=4.3e-6 L=5.5e-6(全て丸め床 <5e-5・dt 非依存)",
-   "ms": 902
+   "ms": 1312
   },
   {
    "id": "paper.zeroth-law-isolated",
@@ -632,7 +632,7 @@
    "id": "ab.same-init",
    "pass": true,
    "detail": "",
-   "ms": 1318
+   "ms": 1329
   },
   {
    "id": "ab.params-differ",
@@ -680,13 +680,13 @@
    "id": "claim.galaxy-flatten",
    "pass": true,
    "detail": "vφ外縁 kF1=2.106 kF0=1.945 比=1.082 (>1.04)",
-   "ms": 178077
+   "ms": 282083
   },
   {
    "id": "behavior.saturn",
    "pass": true,
    "detail": "inAnn=100.0% drift=0.0",
-   "ms": 1
+   "ms": 0
   },
   {
    "id": "behavior.convection",
@@ -698,13 +698,13 @@
    "id": "behavior.mercury-builtin",
    "pass": true,
    "detail": "Δϖ/周: λ1=3.77° λ0=-0.65° α0.5=0.84° 比(基線差引)=2.97(理論3±0.6)",
-   "ms": 150
+   "ms": 237
   },
   {
    "id": "zonal.analytic-d68",
    "pass": true,
    "detail": "ϖ̇=38.231443°/日(38.231443±0.05) 較正=38.243000(38.243±0.002)",
-   "ms": 8
+   "ms": 24
   },
   {
    "id": "zonal.point-mass-degenerate",
@@ -716,7 +716,7 @@
    "id": "zonal.order-convergence",
    "pass": true,
    "detail": "J2k 打ち切り増分 |Δϖ̇| が単調減衰: 7.8e-7 > 1.0e-7 > 2.0e-8 > 7.1e-9 > 1.6e-9",
-   "ms": 2
+   "ms": 3
   },
   {
    "id": "zonal.radial-monotonic",
@@ -734,19 +734,19 @@
    "id": "zonal.d68-preset",
    "pass": true,
    "detail": "zonal.calib=1.000302283",
-   "ms": 4
+   "ms": 1
   },
   {
    "id": "zonal.peri-ui",
    "pass": true,
    "detail": "最内粒子(a_eff=104.2): 実測=9.46°/周 解析=9.53°/周(相対差 0.7% <25%・n=4)",
-   "ms": 451
+   "ms": 654
   },
   {
    "id": "zonal.sim-precession",
    "pass": true,
    "detail": "Δϖ/周 実測=9.464° 解析(a_eff=104.2)=9.529°(相対差 0.68% <15%)",
-   "ms": 427
+   "ms": 710
   },
   {
    "id": "zonal.no-double-count",
@@ -758,115 +758,121 @@
    "id": "zonal.dt-convergence",
    "pass": true,
    "detail": "Δϖ/周: dt=0.016 → 9.464° / dt=0.008 → 9.465°(相対差 0.02% <10%)",
-   "ms": 450
+   "ms": 772
   },
   {
    "id": "zonal.trail-default",
    "pass": true,
    "detail": "overlays.trail=true",
-   "ms": 8
+   "ms": 10
   },
   {
    "id": "ice.e10-off",
    "pass": true,
    "detail": "ds非ゼロ: kappaS=0 → 0/301(=0)/ kappaS=0.08 → 301/301(≥90%)",
-   "ms": 33
+   "ms": 57
   },
   {
    "id": "pwa.sw-offline",
    "pass": true,
-   "detail": "SW=true アセット200=true 名前空間dfm-beta-*=true(dfm-beta-v1.30-b1) オフライン再読込=true",
-   "ms": 462
+   "detail": "SW=true アセット200=true 名前空間dfm-beta-*=true(dfm-beta-v1.30-b2) オフライン再読込=true",
+   "ms": 455
   },
   {
    "id": "pwa.sw-fail-ui",
    "pass": true,
    "detail": "登録失敗の通知表示=true(オフライン用キャッシュ(Service Worker)の登録に失…)",
-   "ms": 209
+   "ms": 294
   },
   {
    "id": "behavior.saturnExp",
    "pass": true,
    "detail": "t≈360: 帯内=96.7%(≥95%) 落下=0.7%(≤2%) 散逸=0.0%(≤5%) 平均|spin|=0.153(<0.5)",
-   "ms": 68854
+   "ms": 115553
   },
   {
    "id": "draft.restore",
    "pass": true,
    "detail": "confirm=1 muF=0.77(0.77) badge=inline-block 未保存として再保存=true",
-   "ms": 186
+   "ms": 263
   },
   {
    "id": "draft.discard",
    "pass": true,
    "detail": "confirm=2 muF=0.77(0.55 は不適用・直前値 0.77 のまま) 下書き消去=true",
-   "ms": 8
+   "ms": 13
   },
   {
    "id": "core.twolayer",
    "pass": true,
    "detail": "🎯 n=301 mc/m=0.18 sc/s=1.05 R/Rc=69.7/29.6 剛体回転(sc/s=1)等価=0(<1e-9) コア静止差=2.8e-1(>1e-4) mc/m=0高速パス=true&等価0 高速コア効果=12.30(>0.1) 空洞NaNなし=true&効果=13.19 負質量NaNなし=true",
-   "ms": 12298
+   "ms": 20424
   },
   {
    "id": "core.ab-body-edit",
    "pass": true,
    "detail": "B選択表示=true(選択粒子の編集(B)) m(B)=-2受理=true A非波及=true mc/m(B)=0.5/mc/m(A)=0 sc/s(A)=1.5/sc/s(B)=1(既定1) 終了で選択解除=true",
-   "ms": 15
+   "ms": 20
   },
   {
    "id": "behavior.saturnLayered",
    "pass": true,
    "detail": "t≈360: 帯内=97.0%(≥95%) 落下=0.3%(≤2%) 散逸=0.0%(≤5%) 平均|spin|=0.163(<0.5) 帯中央値=117/141/200 剛体回転との帯中央値差(t150)=0.02(≤8)",
-   "ms": 97062
+   "ms": 165444
   },
   {
    "id": "behavior.earthMoon",
    "pass": true,
    "detail": "🌍 t≈900(1.99周): r=180.0〜180.1(180±2%) 同期誤差=0.23°/周(≤2) spin月/ω実測 相対差=0.0%(<5%) コア 地球=0.325/1・月=0.0168 NaNなし=true",
-   "ms": 60
+   "ms": 197
   },
   {
    "id": "behavior.earthMoonFree",
    "pass": true,
    "detail": "🌕 t≈5000(10.48周): r=179.97〜180.02(180±1%) 重心移動=0.0009(<0.01) 自転比=27.40(実比27.40) 同期誤差=0.31°/周(≤2) NaNなし=true",
-   "ms": 199
+   "ms": 358
   },
   {
    "id": "ui.landscape",
    "pass": true,
    "detail": "grid=true 2カラム=true キャンバス=655×707 パネル右=true パネル高>300=true 縦積み復帰(390px)=true",
-   "ms": 293
+   "ms": 482
   },
   {
    "id": "sep.equivalence",
    "pass": true,
    "detail": "maxd=0(=0: bit等価) hasSep=[false,false](全係数1は高速経路)",
-   "ms": 129
+   "ms": 196
   },
   {
    "id": "sep.channels",
    "pass": true,
    "detail": "冷: sT0=1(=1) sT1=3.5e-4(<0.5) 斥: sR0=0(=0) sR1=29.2(>1) 引: sF0=0(=0) sF1=11.79(>5)",
-   "ms": 32
+   "ms": 40
   },
   {
    "id": "sep.darkrotor-uphi",
    "pass": true,
-   "detail": "u_φ(200)=0.7189/0.6463 比=1.112(>1.05) u_φ(140)=0.4559<0.5499(内側は逆行)",
-   "ms": 7
+   "detail": "u_φ(200)=1.5131/0.5960 比=2.539(>1.8) u_φ(140)=1.7238/0.4699 比=3.669(>1.8)",
+   "ms": 12
+  },
+  {
+   "id": "core.coreTR",
+   "pass": true,
+   "detail": "set=true A/B転写=true clamp1000+警告=true 非数拒否=true",
+   "ms": 13
   },
   {
    "id": "behavior.darkrotor",
    "pass": true,
-   "detail": "外縁v_φ=1.973(>1.5) r90=218.0(<320: 円盤非破壊) ハロー残存=20/20(≥17) NaN=false",
-   "ms": 21134
+   "detail": "外縁v_φ=2.139(>1.6) r90=212.3(<320: 円盤非破壊) ハロー残存=20/20(≥17) ハロー|spin|=1.347(>0.3) 中心スピン不変=true(pinned) NaN=false",
+   "ms": 32544
   },
   {
    "id": "page.no-errors",
    "pass": true,
    "detail": "",
-   "ms": 0
+   "ms": 1
   }
  ]
 }
