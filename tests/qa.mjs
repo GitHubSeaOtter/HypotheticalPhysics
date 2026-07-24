@@ -1575,18 +1575,47 @@ if (!FAST) {
   }
 }
 
-// ---- 4-43(第20便・beta 先行): スピン役割分離(sFrame/sTherm/sRep)----
-// 対象に sF 配列があるときだけ実行(ルート昇格前は SKIP)。較正実測は 2026-07-23 第20便:
-// 等価性 maxd=0(bit)・冷却対照 0.00035・斥力対照 29.2・単一ローター u_φ(60)=11.79・
-// 🕶️ t=0 の u_φ(200) 比 1.112 / u_φ(140) は内側逆行(渦場の構造)
+// ---- 第22便: 観測温度・光掻き出し・半径系(スピン役割分離は原仮定者裁定で廃止)----
+// 対象に obsT 配列があるときだけ実行(ルート昇格前は SKIP)。較正実測は 2026-07-24 第22便:
+// darkrotor v3 = 中心(m600・R45・spin0.12・コア mc/m=0.1・sc/s=20・Rc/R=0.3・掻出1・pinned)+
+// コア付きハロー20体(m30・R12・spin0.15・掻出1)。u_φ 比 1.954/1.543/1.562(r=140/200/260)・
+// 12000步安定(r90 220〜239 有界・外縁 2.0→2.8・中心スピン厳密不変)
 {
-  const hasSep = await page.evaluate(() => !!(window.HP && HP.sim && HP.sim.sF));
-  if (hasSep) {
-    // 等価性: 明示 sFrame:1,sTherm:1,sRep:1 は省略時と bit 等価(回帰の錨)
+  const hasObs = await page.evaluate(() => !!(window.HP && HP.sim && HP.sim.obsT));
+  if (hasObs) {
+    // 属性の受理・クランプ・実効値: radius が R を、coreRR が Rc を上書きし、
+    // lightSweep=1 は η_rad>0 でも放射冷却しない(光が外に出ない)。A/B 転写も検査
+    const at = await page.evaluate(() => {
+      const mk = (over, phys) => ({ name: 'at', description: 'd', seed: 7, camera: { scale: 200 }, world: { boundary: 'none', size: 0 },
+        physics: Object.assign({ G: 1, D0: 1, kFrame: 1, q: 2, kRep: 0, muF: 0, gammaN: 0, kappaS: 0, Kt: 60, cLight: 60,
+          bM: 1, etaRad: 0, pRad: 2, gravityX: 0, gravityY: 0, geoPN: 0, lambdaPN: 1, pnAlpha: 1.5,
+          radiusScale: 1.2, softening: 2, timeScale: 1 }, phys || {}),
+        bodies: [Object.assign({ type: 'single', m: 100, x: 0, y: 0, vx: 0, vy: 0, spin: 2, pinned: false }, over)] });
+      HP.sim.build(HP.validatePreset(mk({ radius: 20, coreMR: 0.5, coreSR: 4, coreRR: 0.5 })).preset);
+      const okR = HP.sim.R[0] === 20 && HP.sim.Rc[0] === 10;
+      HP.sim.build(HP.validatePreset(mk({})).preset);
+      const okRdef = Math.abs(HP.sim.R[0] - 1.2 * Math.sqrt(100)) < 1e-6;
+      const cool = (ls) => { HP.sim.build(HP.validatePreset(mk({ lightSweep: ls }, { etaRad: 0.5, G: 0 })).preset);
+        const s0 = HP.sim.spin[0]; for (let k = 0; k < 500; k++) HP.sim.step(0.016); return HP.sim.spin[0] / s0; };
+      const coolSwept = cool(1), coolOpen = cool(0);
+      const v2 = HP.validatePreset(mk({ lightSweep: 2, obsT: 5000 }));
+      const okClamp = v2.ok && v2.preset.bodies[0].lightSweep === 1 && v2.preset.bodies[0].obsT === 1000
+        && v2.warnings.some(w => /lightSweep/.test(w)) && v2.warnings.some(w => /obsT/.test(w));
+      const okReject = !HP.validatePreset(mk({ coreOT: 'x' })).ok;
+      HP.loadPreset('darkrotor', false);
+      HP.sim.obsT[0] = 7; HP.sim.lSw[0] = 0.5;
+      HP.abStart(); const b = HP.ab().simB, okClone = b.obsT[0] === 7 && b.lSw[0] === 0.5; HP.abStop();
+      return { okR, okRdef, coolSwept, coolOpen, okClamp, okReject, okClone };
+    });
+    add('obs.attrs', at.okR && at.okRdef && at.coolSwept === 1 && at.coolOpen < 0.5 && at.okClamp && at.okReject && at.okClone,
+      `R上書き/Rc比=${at.okR} R既定式=${at.okRdef} 掻出1で無放射=${at.coolSwept}(=1) 対照冷却=${at.coolOpen.toExponential(1)}(<0.5) ` +
+      `clamp+警告=${at.okClamp} 非数拒否=${at.okReject} A/B転写=${at.okClone}`);
+
+    // 等価性: 明示既定値(obsT:1, lightSweep:0, coreOT:1)は省略時と bit 等価(回帰の錨)
     const eq = await page.evaluate(() => {
       const mk = (withKeys) => {
         const b = { type: 'single', m: 500, x: -40, y: 0, vx: 0, vy: -1.2, spin: 1.5, pinned: false };
-        if (withKeys) Object.assign(b, { sFrame: 1, sTherm: 1, sRep: 1 });
+        if (withKeys) Object.assign(b, { obsT: 1, lightSweep: 0, coreOT: 1 });
         return { name: 'eq', description: 'd', seed: 7, camera: { scale: 200 }, world: { boundary: 'none', size: 0 },
           physics: { G: 1, D0: 2, kFrame: 1, q: 2, kRep: 1, muF: 0.5, gammaN: 0.4, kappaS: 0.05, Kt: 60, cLight: 60,
             bM: 1, etaRad: 0.001, pRad: 2, gravityX: 0, gravityY: 0, geoPN: 0, lambdaPN: 1, pnAlpha: 1.5,
@@ -1597,49 +1626,17 @@ if (!FAST) {
       };
       const run = (withKeys) => { HP.sim.build(HP.validatePreset(mk(withKeys)).preset);
         for (let k = 0; k < 300; k++) HP.sim.step(0.016);
-        return { sep: HP.sim.hasSep, x: Array.from(HP.sim.x), y: Array.from(HP.sim.y), s: Array.from(HP.sim.spin) }; };
+        return { x: Array.from(HP.sim.x), y: Array.from(HP.sim.y), s: Array.from(HP.sim.spin) }; };
       const a = run(true), b = run(false);
       let maxd = 0;
       for (let i = 0; i < a.x.length; i++)
         maxd = Math.max(maxd, Math.abs(a.x[i] - b.x[i]), Math.abs(a.y[i] - b.y[i]), Math.abs(a.s[i] - b.s[i]));
-      return { maxd, sepA: a.sep, sepB: b.sep };
+      return { maxd };
     });
-    add('sep.equivalence', eq.maxd === 0 && !eq.sepA && !eq.sepB,
-      `maxd=${eq.maxd}(=0: bit等価) hasSep=[${eq.sepA},${eq.sepB}](全係数1は高速経路)`);
+    add('obs.equivalence', eq.maxd === 0, `maxd=${eq.maxd}(=0: bit等価 — 観測層は既定で力学に影響しない)`);
 
-    // 3チャネルの分離: 冷(sTherm=0 は η_rad>0 でもスピン不変)・斥(sRep=0 は径方向加速ゼロ)・
-    // 引(sFrame で u_φ が0↔実測値に切り替わる)
-    const ch = await page.evaluate(() => {
-      const mkRotor = (over) => Object.assign({ type: 'single', m: 600, x: 0, y: 0, vx: 0, vy: 0, spin: 2, pinned: true }, over);
-      const base = (rotor, phys) => ({ name: 'ch', description: 'd', seed: 7, camera: { scale: 200 }, world: { boundary: 'none', size: 0 },
-        physics: Object.assign({ G: 1, D0: 1, kFrame: 1, q: 2, kRep: 1, muF: 0, gammaN: 0, kappaS: 0, Kt: 60, cLight: 60,
-          bM: 1, etaRad: 0, pRad: 2, gravityX: 0, gravityY: 0, geoPN: 0, lambdaPN: 1, pnAlpha: 1.5,
-          radiusScale: 1.2, softening: 2, timeScale: 1 }, phys || {}),
-        bodies: [rotor, { type: 'single', m: 1, x: 60, y: 0, vx: 0, vy: 0, spin: 0, pinned: false }] });
-      // E11 は pinned をスキップするため冷却対照は pinned:false(G=0 で静止のまま)
-      const cool = (sT) => { HP.sim.build(HP.validatePreset(base(mkRotor({ sTherm: sT, sRep: 0, pinned: false }), { etaRad: 0.5, G: 0 })).preset);
-        const s0 = HP.sim.spin[0]; for (let k = 0; k < 500; k++) HP.sim.step(0.016); return HP.sim.spin[0] / s0; };
-      const rep = (sR) => { HP.sim.build(HP.validatePreset(base(mkRotor({ sTherm: 0, sRep: sR }), { G: 0, kRep: 5, kFrame: 0 })).preset);
-        for (let k = 0; k < 200; k++) HP.sim.step(0.016);
-        return (HP.sim.x[1] * HP.sim.vx[1] + HP.sim.y[1] * HP.sim.vy[1]) / Math.hypot(HP.sim.x[1], HP.sim.y[1]); };
-      const uphi = (sF) => { HP.sim.build(HP.validatePreset(base(mkRotor({ sFrame: sF, sTherm: 0, sRep: 0 }))).preset);
-        const s = HP.sim, p = s.params, eps2 = p.softening * p.softening;
-        const px = 0, py = 60; let uNx = 0, uNy = 0, W = p.D0;
-        const dx = px - s.x[0], dy = py - s.y[0], d2 = dx * dx + dy * dy;
-        const inv = 1 / Math.sqrt(d2 + eps2), w = s.m[0] * inv, d = Math.sqrt(d2);
-        W += w; const sEff = s.spin[0] * s.sF[0]; const tt = s.R[0] / (s.R[0] + d);
-        const om = sEff * tt * tt; uNx = w * (om * (-dy)); uNy = w * (om * dx);
-        return (px * uNy - py * uNx) / 60 / W; };
-      return { coolCold: cool(0), coolHot: cool(1), repOff: rep(0), repOn: rep(1), uOn: uphi(1), uOff: uphi(0) };
-    });
-    add('sep.channels',
-      ch.coolCold === 1 && ch.coolHot < 0.5 && ch.repOff === 0 && ch.repOn > 1 && ch.uOff === 0 && ch.uOn > 5,
-      `冷: sT0=${ch.coolCold}(=1) sT1=${ch.coolHot.toExponential(1)}(<0.5) ` +
-      `斥: sR0=${ch.repOff}(=0) sR1=${ch.repOn.toFixed(1)}(>1) 引: sF0=${ch.uOff}(=0) sF1=${ch.uOn.toFixed(2)}(>5)`);
-
-    // 🕶️ darkrotor v2(第21便): t=0 の決定フレーム — 全ダークローター(中心コアローター+
-    // ハロー20体)の sFrame を 0 にすると u_φ が大きく低下する(中心コアの引きずり ×2 超)。
-    // u_φ の評価はエンジンの ω 計算と同形(コア差動項込み・sFrame 乗算込み)。t=0 決定論
+    // 🕶️ darkrotor v3: t=0 の決定フレーム — 全ローター(中心+ハロー)のスピンを 0 にすると
+    // u_φ が大きく低下(外殻+コアの引きずり)。u_φ 評価はエンジンの ω と同形(コア差動項込み)
     const up = await page.evaluate(() => {
       const uphiAt = (s, r) => {
         const p = s.params, eps2 = p.softening * p.softening, q = p.q;
@@ -1656,48 +1653,25 @@ if (!FAST) {
             if (s.coreMR[j] !== 0 && sj !== 0 && s.Rc[j] > 0 && s.coreSR[j] !== 1) {
               const tt = s.Rc[j] / (s.Rc[j] + d); om += s.coreMR[j] * sj * (s.coreSR[j] - 1) * Math.pow(tt, q);
             }
-            om *= s.sF[j];
             uNx += w * (s.vx[j] + om * (-dy)); uNy += w * (s.vy[j] + om * dx);
           }
           acc += (px * uNy - py * uNx) / r / W;
         }
         return acc / 16;
       };
-      const run = (frameOff) => { HP.loadPreset('darkrotor', false);
+      const run = (spinOff) => { HP.loadPreset('darkrotor', false);
         const s = HP.sim;
-        if (frameOff) { s.sF[0] = 0; for (let i = 381; i < s.n; i++) s.sF[i] = 0; s.updateRadii(); }
+        if (spinOff) { s.spin[0] = 0; for (let i = 381; i < s.n; i++) s.spin[i] = 0; }
         return { u200: uphiAt(s, 200), u140: uphiAt(s, 140) }; };
       return { on: run(false), off: run(true) };
     });
-    add('sep.darkrotor-uphi', up.on.u200 > up.off.u200 * 1.8 && up.on.u140 > up.off.u140 * 1.8,
-      `u_φ(200)=${up.on.u200.toFixed(4)}/${up.off.u200.toFixed(4)} 比=${(up.on.u200 / up.off.u200).toFixed(3)}(>1.8) ` +
-      `u_φ(140)=${up.on.u140.toFixed(4)}/${up.off.u140.toFixed(4)} 比=${(up.on.u140 / up.off.u140).toFixed(3)}(>1.8)`);
+    add('darkrotor.uphi', up.on.u140 > up.off.u140 * 1.6 && up.on.u200 > up.off.u200 * 1.25,
+      `u_φ(140)=${up.on.u140.toFixed(4)}/${up.off.u140.toFixed(4)} 比=${(up.on.u140 / up.off.u140).toFixed(3)}(>1.6) ` +
+      `u_φ(200)=${up.on.u200.toFixed(4)}/${up.off.u200.toFixed(4)} 比=${(up.on.u200 / up.off.u200).toFixed(3)}(>1.25)`);
 
-    // 🕶️ coreTR(第21便): 受理・クランプ・配列反映・A/B転写(コア温度 Tc = coreTR·Ic·sc² は表示のみ)
-    const ct = await page.evaluate(() => {
-      const mk = (tr) => ({ name: 'ct', description: 'd', seed: 7, camera: { scale: 200 }, world: { boundary: 'none', size: 0 },
-        physics: { G: 1, D0: 1, kFrame: 1, q: 2, kRep: 0, muF: 0, gammaN: 0, kappaS: 0, Kt: 60, cLight: 60,
-          bM: 1, etaRad: 0, pRad: 4, gravityX: 0, gravityY: 0, geoPN: 0, lambdaPN: 1, pnAlpha: 1.5,
-          radiusScale: 1.2, softening: 2, timeScale: 1 },
-        bodies: [{ type: 'single', m: 100, x: 0, y: 0, vx: 0, vy: 0, spin: 0.5, coreMR: 0.5, coreSR: 4, coreTR: tr, pinned: true }] });
-      const v1 = HP.validatePreset(mk(3)); HP.sim.build(v1.preset);
-      const okSet = HP.sim.coreTR[0] === 3;
-      // A/B転写は currentPreset と粒子数が一致する経路で検査(clone は同一プリセット確保→状態転写)
-      HP.loadPreset('darkrotor', false);
-      HP.sim.coreTR[0] = 7;
-      HP.abStart(); const okClone = HP.ab().simB.coreTR[0] === 7; HP.abStop();
-      const v2 = HP.validatePreset(mk(5000));
-      const okClamp = v2.ok && v2.preset.bodies[0].coreTR === 1000 && v2.warnings.some(w => /coreTR/.test(w));
-      const v3 = HP.validatePreset(mk('x'));
-      return { okSet, okClone, okClamp, okReject: !v3.ok };
-    });
-    add('core.coreTR', ct.okSet && ct.okClone && ct.okClamp && ct.okReject,
-      `set=${ct.okSet} A/B転写=${ct.okClone} clamp1000+警告=${ct.okClamp} 非数拒否=${ct.okReject}`);
-
-    // 🕶️ の中期安定 v2(!FAST・第21便): pinned 中心コアローター+コア無しハロー+散逸平衡の
-    // 安定構成 — 3000步で円盤非破壊・ハロー残存・中心スピン厳密不変(pinned は E9/E10′/E11/E6′
-    // トルクの対象外)・ハローはまだ回っている。較正実測(第21便): 外縁2.139・r90=212・
-    // ハロー|spin|=1.35・12000步まで有界(r90 160〜249)
+    // 🕶️ の中期安定 v3(!FAST・第22便): 3000步で円盤非破壊・ハロー残存・中心スピン厳密不変
+    // (pinned)・ハロースピン暴走なし(第21便の反作用ポンピング教訓 — |spin| が増えないこと)。
+    // 較正実測: 外縁2.02・r90=238.6・ハロー|spin|=0.092(初期0.15から減衰・暴走なし)
     if (!FAST) {
       const st = await page.evaluate(() => {
         HP.loadPreset('darkrotor', false);
@@ -1715,13 +1689,13 @@ if (!FAST) {
           haloSpin: hs / (s.n - 381), cSpinKeep: Math.abs(s.spin[0] - s0) < 1e-9, nan: s.hasNaN() };
       });
       add('behavior.darkrotor', !st.nan && st.r90 < 320 && st.outer > 1.6 && st.inside >= 17
-        && st.cSpinKeep && st.haloSpin > 0.3,
+        && st.cSpinKeep && st.haloSpin < 0.5,
         `外縁v_φ=${st.outer.toFixed(3)}(>1.6) r90=${st.r90.toFixed(1)}(<320: 円盤非破壊) ` +
-        `ハロー残存=${st.inside}/${st.nHalo}(≥17) ハロー|spin|=${st.haloSpin.toFixed(3)}(>0.3) ` +
+        `ハロー残存=${st.inside}/${st.nHalo}(≥17) ハロー|spin|=${st.haloSpin.toFixed(3)}(<0.5: 暴走なし) ` +
         `中心スピン不変=${st.cSpinKeep}(pinned) NaN=${st.nan}`);
     }
   } else {
-    console.log('SKIP sep.*(対象にスピン役割分離なし)');
+    console.log('SKIP obs.*/darkrotor.*(対象に観測温度系なし)');
   }
 }
 
