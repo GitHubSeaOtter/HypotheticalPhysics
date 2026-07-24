@@ -155,7 +155,7 @@
 <body>
 <div id="app">
   <header>
-    <div class="title" id="appTitle">仮想物理ラボ</div>
+    <div class="title" id="appTitle">DFM Lab</div>
     <select id="presetSelect" aria-label="シミュレーション選択"></select>
     <button id="btnLang" class="btn" style="flex:0 0 auto;min-height:44px;padding:8px 10px;" aria-label="Language">EN</button>
   </header>
@@ -178,8 +178,8 @@
       <div class="beRow"><label id="beLot" style="min-width:34px">To×</label><input type="text" id="beOt" inputmode="decimal" autocomplete="off">
         <label id="beLsw" style="min-width:30px">掻出</label><input type="text" id="beSw" inputmode="decimal" autocomplete="off"></div>
       <div class="beRow"><label id="beLoc" style="min-width:34px">TcO×</label><input type="text" id="beOc" inputmode="decimal" autocomplete="off"><span style="flex:1"></span></div>
-      <div class="beRow"><label>vx</label><input type="text" id="beVx" inputmode="text" autocomplete="off">
-        <label>vy</label><input type="text" id="beVy" inputmode="text" autocomplete="off"></div>
+      <div class="beRow"><label id="beLvx">vx</label><input type="text" id="beVx" inputmode="text" autocomplete="off">
+        <label id="beLvy">vy</label><input type="text" id="beVy" inputmode="text" autocomplete="off"></div>
       <div class="beRow"><label id="beLp" style="flex:1">固定(pinned)</label><input type="checkbox" id="bePin"></div>
       <div class="beNote" id="beNote">※編集は即時反映。⏮初めからで初期値に戻ります。</div>
     </div>
@@ -344,7 +344,7 @@ const fmt = (v)=> Math.abs(v)>=100?v.toFixed(0):Math.abs(v)>=10?v.toFixed(1)
 let LANG = (localStorage.getItem("hp_lang")==="en") ? "en" : "ja";
 const I18N = {
 ja: {
-  appTitle:"仮想物理ラボ", docTitle:"仮想物理ラボ — 仮定物理法則シミュレータ",
+  appTitle:"DFM Lab", docTitle:"仮想物理ラボ — 仮定物理法則シミュレータ",   // 第23便: 左上タイトルを短縮(document.title は不変)
   reset:"⏮ 初めから", run:"▶ 実行", resume:"▶ 再開", pause:"⏸ 停止",
   tabHelp:"説明", tabParams:"パラメータ", tabSaves:"セーブ", tabAI:"AI追加",
   paramDefault:"プリセット既定値に戻す",
@@ -371,6 +371,29 @@ ja: {
   tgTemp:"温度グラフ", tgSpectrum:"スペクトル", tgMonitor:"保存量モニタ(P・L・帳簿)",
   tgRays:"光線", uiScaleLabel:"文字サイズ",
   sizeModeLabel:"粒子サイズ表示", sizeModeOpts:[["cap","現状(上限あり)"],["radius","半径準拠"]],
+  // 第23便(原仮定者指示): 「表示」各行のタップ説明
+  tgTrailsDesc:"画面を消さずに粒子の残像を重ねる表示効果。物理には影響しない。",
+  tgTrailLineDesc:"粒子の軌道を線で記録して描く(☿の楕円歳差など)。記録間隔は描画品質に従う。",
+  tgFieldDesc:"決定力 W の強さを背景の色マップで表示(A3/E1′)。明るいほど W が高い。",
+  tgRaysDesc:"光線束(E8R)を表示。光は ψ=W/Kt で屈折し、決定フレーム u に運ばれる(A11)。光線のないサンプルでも既定の平行光束を点灯できる。",
+  tgCurveDesc:"右下に回転曲線(半径ごとの接線速度)を表示。点線は最大質量天体だけによるケプラー予測。",
+  tgTempDesc:"温度ヒストグラム(左右比較)。表示は観測温度 T_obs=To×·(1−掻出)·T。",
+  tgSpectrumDesc:"放射スペクトル(A12: ピーク波長 λ=b_m/T のウィーン型)。表示は観測温度基準。",
+  tgMonitorDesc:"運動量P・角運動量Lとリザーバ帳簿(E6′/E11)の保存量モニタ(T7)。",
+  uiScaleDesc:"UI文字の拡大率。表示のみで物理・保存データには影響しない。",
+  sizeModeDesc:"粒子の描画サイズ。「現状」は30pxで頭打ち(見やすさ優先)、「半径準拠」は物理半径Rの縮尺どおり(radius指定の確認に)。物理には影響しない。",
+  // 第23便: 粒子編集のパラメータ名タップ説明
+  beDm:"m: 質量。重力(E4)と決定力場W(E1′)の源。負値は実験用(±5000)。",
+  beDs:"s: スピン(自転角速度)。空間引きずり(A8)・温度T=Is²(A9)・スピン斥力(A10)の源。",
+  beDmc:"mc/m: コア質量比(主星2層)。0=単層。負値=空洞(殻に質量集中・差動引きずりが反転)。",
+  beDsc:"sc/s: コアスピン比。コア実スピン sc=比×s が差動引きずり(Rcから減衰)を生む。1=剛体回転=単層等価。",
+  beDr:"R: 半径。慣性I=½mR²・接触・引きずり減衰(R/(R+d))^q・温度・扁平率f=5s²R³/(4Gm)に使用。既定はradiusScale·√|m|。",
+  beDrr:"Rc/R: コア半径比。コアの引きずり到達距離を決める。既定は√|mc/m|相当。",
+  beDot:"To×: 観測温度係数。観測温度T_obs=To×·(1−掻出)·T(表示のみ — 力学不変)。",
+  beDsw:"掻出: 光掻き出し(0〜1)。自星の光を外に出さない — 観測温度0で見掛けは冷たく、放射冷却も(1−掻出)倍(ダークローター)。",
+  beDoc:"TcO×: コア観測温度比率。Tc_obs=TcO×·(1−掻出)·Ic·sc²(表示のみ)。",
+  beDv:"vx/vy: 速度成分。慣性は局所フレームuに対して働く(A5)。",
+  beDp:"固定: 位置・速度・スピンを外部拘束で固定(力・トルクを受けない)。反作用はリザーバへ帳簿(A13)。",
   uiScaleOpts:[["1","標準"],["1.15","大"],["1.3","特大"]],
   qualityLabel:"描画品質",
   qualityOpts:[["auto","自動"],["exact","正確"],["lite","軽量"]],
@@ -397,7 +420,7 @@ ja: {
   btnImportFile:"ファイルから読込", fileLoaded:"ファイルを読み込みました",
   unsavedWarn:"※編集中のパラメータは「保存」するまでバックアップに含まれません",
   confirmDiscard:"未保存の編集があります。破棄して読み込みますか?",
-  betaShared:"β版(beta v1.30-b3)はルート版とセーブ・APIキー(localStorage)を共有します。実験の前にセーブタブからエクスポートしておくことを推奨します。",
+  betaShared:"β版(beta v1.30-b4)はルート版とセーブ・APIキー(localStorage)を共有します。実験の前にセーブタブからエクスポートしておくことを推奨します。",
   draftRestore:"未保存の編集の下書きが見つかりました(再読込前の状態)。復元しますか?",
   swFail:"オフライン用キャッシュ(Service Worker)の登録に失敗しました。オンラインでは通常どおり使えます。",
   periHud:(m,a)=>`近点移動(最内粒子): 実測 ${m}°/周 / 解析 ${a}°/周`,
@@ -441,7 +464,7 @@ ja: {
   groups:{}, params:{},
 },
 en: {
-  appTitle:"Virtual Physics Lab", docTitle:"Virtual Physics Lab — Hypothetical-Physics Simulator",
+  appTitle:"DFM Lab", docTitle:"Virtual Physics Lab — Hypothetical-Physics Simulator",
   reset:"⏮ Restart", run:"▶ Run", resume:"▶ Resume", pause:"⏸ Pause",
   tabHelp:"Guide", tabParams:"Parameters", tabSaves:"Saves", tabAI:"AI Create",
   paramDefault:"Restore preset defaults",
@@ -468,6 +491,27 @@ en: {
   tgTemp:"Temperature graph", tgSpectrum:"Spectrum", tgMonitor:"Conservation monitor (P, L, ledger)",
   tgRays:"Light rays", uiScaleLabel:"Text size",
   sizeModeLabel:"Particle size", sizeModeOpts:[["cap","Standard (capped)"],["radius","True radius"]],
+  tgTrailsDesc:"Overlays fading afterimages of the particles. Display only — physics unchanged.",
+  tgTrailLineDesc:"Records and draws orbit lines (e.g. Mercury's precessing ellipse). Recording interval follows render quality.",
+  tgFieldDesc:"Background color map of the determinacy W (A3/E1'). Brighter = higher W.",
+  tgRaysDesc:"Shows the light-ray bundle (E8R). Rays refract via psi=W/Kt and are carried by the frame u (A11). Presets without rays can light a default parallel bundle.",
+  tgCurveDesc:"Rotation curve (tangential speed vs radius) at bottom right. The dotted line is the Kepler prediction from the largest single mass only.",
+  tgTempDesc:"Temperature histogram (left/right). Uses the observed temperature T_obs = To x (1-sweep) x T.",
+  tgSpectrumDesc:"Radiation spectrum (A12, Wien-type peak lambda=b_m/T). Uses observed temperature.",
+  tgMonitorDesc:"Conservation monitor (T7): momentum P, angular momentum L, and the reservoir ledger (E6'/E11).",
+  uiScaleDesc:"UI text scale. Display only.",
+  sizeModeDesc:"Particle draw size. 'Standard' caps at 30 px (readability); 'True radius' draws the physical radius R to scale (to inspect explicit radius). Physics unchanged.",
+  beDm:"m: mass. Source of gravity (E4) and the determinacy field W (E1'). Negative values are experimental.",
+  beDs:"s: spin (rotation rate). Source of frame dragging (A8), temperature T=Is^2 (A9), and spin repulsion (A10).",
+  beDmc:"mc/m: core mass ratio (two-layer). 0 = single layer. Negative = hollow shell (differential drag flips).",
+  beDsc:"sc/s: core spin ratio. Core spin sc = ratio x s drives the differential drag (decaying from Rc). 1 = rigid rotation = single-layer equivalent.",
+  beDr:"R: radius. Used in inertia I=1/2 mR^2, contact, drag falloff (R/(R+d))^q, temperature, and oblateness f=5s^2R^3/(4Gm). Default radiusScale x sqrt(|m|).",
+  beDrr:"Rc/R: core radius ratio. Sets the reach of the core's drag. Default ~ sqrt(|mc/m|).",
+  beDot:"To x: observed-temperature coefficient. T_obs = To x (1-sweep) x T (display only).",
+  beDsw:"sweep: light sweep-out (0-1). The star's own light never escapes - observed temperature 0 (looks cold) and radiative cooling x (1-sweep). The dark-rotor mechanism.",
+  beDoc:"TcO x: core observed-temperature ratio. Tc_obs = TcO x (1-sweep) x Ic sc^2 (display only).",
+  beDv:"vx/vy: velocity components. Inertia acts relative to the local frame u (A5).",
+  beDp:"Pinned: externally constrained (receives no force or torque; spin fixed). Reactions are ledgered to the reservoir (A13).",
   uiScaleOpts:[["1","Standard"],["1.15","Large"],["1.3","X-Large"]],
   qualityLabel:"Render quality",
   qualityOpts:[["auto","Auto"],["exact","Accurate"],["lite","Lite"]],
@@ -494,7 +538,7 @@ en: {
   btnImportFile:"Load from file", fileLoaded:"File loaded",
   unsavedWarn:"Note: edited parameters are not included in backups until you press Save",
   confirmDiscard:"You have unsaved edits. Discard them and load?",
-  betaShared:"This beta (v1.30-b3) shares saves and API keys (localStorage) with the release version. Export your saves from the Save tab before experimenting.",
+  betaShared:"This beta (v1.30-b4) shares saves and API keys (localStorage) with the release version. Export your saves from the Save tab before experimenting.",
   draftRestore:"Found a draft of unsaved edits (from before the last reload). Restore it?",
   swFail:"Offline cache (Service Worker) registration failed. The app still works normally online.",
   periHud:(m,a)=>`Apsidal drift (innermost): measured ${m}°/orbit / analytic ${a}°/orbit`,
@@ -827,9 +871,9 @@ const BUILTIN_PRESETS = [
   // コアのスピンは自星の光を掻き出す(lightSweep=1 — 自星だけ隠れれば良い)→ 観測温度 0。
   // 外殻(質量の9割・半径R=45 明示指定)のスピンによる引きずりが銀河スケールに及ぶ。
   // 較正(第22便): u_φ 比 1.95/1.54/1.56(r=140/200/260)・12000步安定(r90 220〜239 有界)
-  description:"銀河円盤(🌌と同じ)を囲む20個のダークローターと、銀河中心の巨大ダークローター。ダークローターは高速回転ブラックホールをモデルにした天体で、高速スピンのコア(sc/s=20)と圧倒的重量の外殻(mc/m=0.1 — 質量の9割が外殻)で構成される。コアのスピンは自星の光を掻き出して外に出さない(掻出=1 — 自星だけ隠れれば良い)ため、観測温度は計測できず見掛けは冷たい。一方、外殻のスピンによる空間引きずりは銀河スケールに及び(半径R=45の明示指定)、決定フレーム u_φ を実測×1.5〜2.0 押し上げて外縁の回転を増強する(QA darkrotor.uphi / behavior.darkrotor が機械検証)。中心は固定(外部拘束 — 反作用はリザーバに帳簿)。粒子をタップすると半径R・Rc/R・観測温度To×・掻出・TcO×・扁平率 f を確認・編集できる。kFrameを0にすると引きずり経路ごと消える(おすすめA/B)。※モデル内の理論実験であり、実宇宙のダークマターの主張ではない(T4の防御線を維持)。",
-  en:{name:"Dark-Rotor Galaxy", description:"The 🌌 galactic disk surrounded by 20 dark rotors, plus a giant dark rotor at the galactic center. A dark rotor is modeled on a fast-spinning black hole: a fast-spinning core (sc/s=20) inside an overwhelmingly heavy shell (mc/m=0.1 — 90% of the mass is the shell). The core's spin sweeps the star's own light out of escape (sweep=1 — it only needs to hide the star itself), so the observed temperature cannot be measured and it looks cold. The shell's spin, meanwhile, drags space on galactic scales (explicit radius R=45), lifting the determinacy frame u_phi by a measured x1.5-2.0 and enhancing the outer rotation (machine-checked by QA darkrotor.uphi / behavior.darkrotor). The center is pinned (external constraint — reactions ledgered to the reservoir). Tap a body to inspect and edit radius R, Rc/R, observed-temperature To x, sweep, TcO x, and the oblateness f. Set kFrame to 0 and the whole drag channel vanishes (suggested A/B). A model-internal experiment — not a claim about real dark matter (T4 disclaimer upheld)."},
-  activeParams:["kFrame","D0","G"],
+  description:"銀河円盤(🌌と同じ)を囲む20個のダークローターと、銀河中心の巨大ダークローター。ダークローターは高速回転ブラックホールをモデルにした天体で、高速スピンのコア(sc/s=20)と圧倒的重量の外殻(mc/m=0.1 — 質量の9割が外殻)で構成される。コアのスピンは自星の光を掻き出して外に出さない(掻出=1 — 自星だけ隠れれば良い)ため、観測温度は計測できず見掛けは冷たい。一方、外殻のスピンによる空間引きずりは銀河スケールに及び(半径R=45の明示指定)、決定フレーム u_φ を実測×1.5〜2.0 押し上げて外縁の回転を増強する(QA darkrotor.uphi / behavior.darkrotor が機械検証)。中心は固定(外部拘束 — 反作用はリザーバに帳簿)。粒子をタップすると半径R・Rc/R・観測温度To×・掻出・TcO×・扁平率 f を確認・編集できる — 掻出を0にすると隠れていた高温核が見える。qやD0を下げると引きずりの届く範囲が広がる(実験)。kFrameを0にすると引きずり経路ごと消える(おすすめA/B)。※モデル内の理論実験であり、実宇宙のダークマターの主張ではない(T4の防御線を維持)。",
+  en:{name:"Dark-Rotor Galaxy", description:"The 🌌 galactic disk surrounded by 20 dark rotors, plus a giant dark rotor at the galactic center. A dark rotor is modeled on a fast-spinning black hole: a fast-spinning core (sc/s=20) inside an overwhelmingly heavy shell (mc/m=0.1 — 90% of the mass is the shell). The core's spin sweeps the star's own light out of escape (sweep=1 — it only needs to hide the star itself), so the observed temperature cannot be measured and it looks cold. The shell's spin, meanwhile, drags space on galactic scales (explicit radius R=45), lifting the determinacy frame u_phi by a measured x1.5-2.0 and enhancing the outer rotation (machine-checked by QA darkrotor.uphi / behavior.darkrotor). The center is pinned (external constraint — reactions ledgered to the reservoir). Tap a body to inspect and edit radius R, Rc/R, observed-temperature To x, sweep, TcO x, and the oblateness f — set sweep to 0 to reveal the hidden hot core. Lowering q or D0 extends the drag's reach (experiment). Set kFrame to 0 and the whole drag channel vanishes (suggested A/B). A model-internal experiment — not a claim about real dark matter (T4 disclaimer upheld)."},
+  activeParams:["kFrame","D0","q"],
   camera:{scale:300}, world:{boundary:"none",size:0}, seed:20260723,
   physics:{G:1, D0:1, kFrame:1, q:2, kRep:1.0, muF:0.02, gammaN:0.05, kappaS:0.05, Kt:60,
     cLight:60, bM:1, etaRad:0, pRad:4, gravityX:0, gravityY:0, geoPN:0, lambdaPN:1, pnAlpha:1.5, radiusScale:1.2, softening:4, timeScale:2},
@@ -3016,22 +3060,36 @@ function buildParamRows(){
   }
   // v1.23(原仮定者指示): 表示トグルは A/B 比較中、常に両方の画面へ反映する
   const setOv=(k)=>(v)=>{ sim.overlays[k]=v; if(ab) ab.simB.overlays[k]=v; };
-  const toggles=[["trails",T("tgTrails"),()=>trailsOn,(v)=>trailsOn=v],
+  const toggles=[["trails",T("tgTrails"),()=>trailsOn,(v)=>trailsOn=v,"tgTrailsDesc"],
     // v1.19: 線の軌跡(overlays.trail)をトグル化。A/B比較中はB側にも連動
     ["trail",T("tgTrailLine"),()=>!!sim.overlays.trail,
-      (v)=>{ setOv("trail")(v); if(!v){ trailBuf=[]; trailBufB=[]; } }],
-    ["field",T("tgField"),()=>!!sim.overlays.field,setOv("field")],
+      (v)=>{ setOv("trail")(v); if(!v){ trailBuf=[]; trailBufB=[]; } },"tgTrailLineDesc"],
+    ["field",T("tgField"),()=>!!sim.overlays.field,setOv("field"),"tgFieldDesc"],
     // v1.17: 光線トグル — 光線ありプリセットはON/OFF、なしのプリセットも既定束(26本)で点灯できる
     ["rays",T("tgRays"),()=>!!(sim.rays&&sim.rays.n>0),
       (v)=>{ const mk=()=> (currentPreset&&currentPreset.rays)?JSON.parse(JSON.stringify(currentPreset.rays)):{n:26,spread:0.85};
-             sim.rays=v?mk():null; if(ab) ab.simB.rays=v?mk():null; }],
-    ["rotationCurve",T("tgCurve"),()=>!!sim.overlays.rotationCurve,setOv("rotationCurve")],
-    ["tempHistogram",T("tgTemp"),()=>!!sim.overlays.tempHistogram,setOv("tempHistogram")],
-    ["spectrum",T("tgSpectrum"),()=>!!sim.overlays.spectrum,setOv("spectrum")],
-    ["monitor",T("tgMonitor"),()=>monitorOn,(v)=>monitorOn=v]];
-  toggles.forEach(([id,label,get,set])=>{
+             sim.rays=v?mk():null; if(ab) ab.simB.rays=v?mk():null; },"tgRaysDesc"],
+    ["rotationCurve",T("tgCurve"),()=>!!sim.overlays.rotationCurve,setOv("rotationCurve"),"tgCurveDesc"],
+    ["tempHistogram",T("tgTemp"),()=>!!sim.overlays.tempHistogram,setOv("tempHistogram"),"tgTempDesc"],
+    ["spectrum",T("tgSpectrum"),()=>!!sim.overlays.spectrum,setOv("spectrum"),"tgSpectrumDesc"],
+    ["monitor",T("tgMonitor"),()=>monitorOn,(v)=>monitorOn=v,"tgMonitorDesc"]];
+  // 第23便(原仮定者指示): 「表示」の各行もパラメータ名タップで説明を開閉(品質行と同じ pdesc 方式)
+  const tapDesc=(row,lab,descKey)=>{
+    if(!descKey) return;
+    lab.className="tappable";
+    lab.addEventListener("click",()=>{
+      const open=row.nextElementSibling && row.nextElementSibling.classList
+        && row.nextElementSibling.classList.contains("pdesc") ? row.nextElementSibling : null;
+      if(open){ open.remove(); return; }
+      const d=document.createElement("div"); d.className="pdesc open";
+      d.textContent=T(descKey);
+      row.after(d);
+    });
+  };
+  toggles.forEach(([id,label,get,set,descKey])=>{
     const row=document.createElement("div"); row.className="prow";
     const lab=document.createElement("label"); lab.textContent=label; lab.style.flex="1";
+    tapDesc(row,lab,descKey);
     const cb=document.createElement("input"); cb.type="checkbox"; cb.checked=get();
     cb.addEventListener("change",()=>{ set(cb.checked); requestRender(); });
     row.appendChild(lab); row.appendChild(cb); disp.appendChild(row);
@@ -3061,6 +3119,7 @@ function buildParamRows(){
   {
     const row=document.createElement("div"); row.className="prow";
     const lab=document.createElement("label"); lab.textContent=T("sizeModeLabel"); lab.style.flex="1";
+    tapDesc(row,lab,"sizeModeDesc");   // 第23便: タップ説明
     const sel=document.createElement("select"); sel.style.flex="0 0 110px";
     for(const [v,name] of T("sizeModeOpts")){
       const o=document.createElement("option"); o.value=v; o.textContent=name; sel.appendChild(o);
@@ -3073,6 +3132,7 @@ function buildParamRows(){
   {
     const row=document.createElement("div"); row.className="prow";
     const lab=document.createElement("label"); lab.textContent=T("uiScaleLabel"); lab.style.flex="1";
+    tapDesc(row,lab,"uiScaleDesc");   // 第23便: タップ説明
     const sel=document.createElement("select"); sel.style.flex="0 0 110px";
     for(const [v,name] of T("uiScaleOpts")){
       const o=document.createElement("option"); o.value=v; o.textContent=name; sel.appendChild(o);
@@ -3733,6 +3793,20 @@ $("#bePin").addEventListener("change",()=>{
   setParamsDirty(true); requestRender();
 });
 $("#beClose").addEventListener("click",()=>{ selIdx=-1; updateBodyEdit(); });
+// 第23便(原仮定者指示): 粒子編集のパラメータ名タップで説明を表示(同じ名前を再タップで元に戻る)
+let beDescShown=null;
+{
+  const BE_DESC={beLm:"beDm",beLs:"beDs",beLmc:"beDmc",beLsc:"beDsc",beLr:"beDr",beLrr:"beDrr",
+    beLot:"beDot",beLsw:"beDsw",beLoc:"beDoc",beLvx:"beDv",beLvy:"beDv",beLp:"beDp"};
+  for(const id of Object.keys(BE_DESC)){
+    const el=document.getElementById(id); if(!el) continue;
+    el.classList.add("tappable");
+    el.addEventListener("click",()=>{
+      if(beDescShown===id){ beDescShown=null; $("#beNote").textContent=T("beNote"); return; }
+      beDescShown=id; $("#beNote").textContent=T(BE_DESC[id]);
+    });
+  }
+}
 
 // 第21便(原仮定者指示): 値の直接入力はタップ(フォーカス)で全選択 — 1タップで上書き入力できる
 // (iOS Safari は focus 直後の select が解除されることがあるため setTimeout(0) で確定させる)
